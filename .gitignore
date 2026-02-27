@@ -6,3 +6,6 @@ repo_tree.txt
 matlab_case_tree.txt
 PIMs/python code/log.txt
 PIMs/python code/batch*
+__pycache__/
+*.pyc
+*.pyo
