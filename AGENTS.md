@@ -7,39 +7,40 @@
 - Legacy directories may only be imported lightly or bridged through thin adapters.
 - Keep old baseline behavior unchanged unless the task explicitly asks for interface adaptation.
 
-## Phase-1 scope
-- Build engineering skeleton only.
-- Define minimal interfaces and config.
-- Do not implement full algorithms.
-- No bulk experiments.
-- No DA-MCMC in this phase.
-- Do not connect to legacy algorithm implementations yet; only define future adapter boundaries.
+## Phase-2 scope
+- Build only the single-sample solver boundary.
+- Do not implement random scenarios.
+- Do not implement full baselines.
+- Do not implement DA-MCMC.
+- Do not run bulk experiments.
+- Do not connect to legacy algorithm implementations yet unless only for a thin compatibility boundary.
+- Use MATPOWER built-in case names (for example `case14`) for smoke testing in this phase.
 
-## Required interfaces
-Implement stubs only for:
-- `sample_X`
-- `apply_state`
-- `eval_proxy`
-- `eval_truth`
+## Core boundary rule
+- In Phase 2, scalar security scores must be computed inside MATLAB wrappers by default.
+- Python must not recompute scalar scores from full solver arrays in the default runtime path.
+- Full bus/branch arrays may only be exposed behind an explicit debug flag.
 
-Each function must include:
-- signature
-- docstring
-- TODO notes
-- explicit exception types
+## Score conventions
+- `s_line >= 0` means line-security violation.
+- `s_volt >= 0` means voltage-security violation.
+- `s_any = max(s_line, s_volt)`.
+- If `ac_fail_as_violation=True` and the AC solver fails, return `success=false` and `s_any=+Inf`.
+- Later algorithm layers may map this to `h = -s_any`, but Phase 2 returns only scalar scores.
 
-## Config defaults
-Use one unified config with:
-- `N=2000`
-- `p0=0.1`
-- `tol=0.8`
-- `sigma0=0.05`
-- `sigma_decay=0.5`
-- `ac_fail_as_violation=True`
+## Line-limit rule
+- Only branches with:
+  - `BR_STATUS == 1`
+  - finite `RATE_A`
+  - `RATE_A > 0`
+  may be used for line-limit scoring.
+- Branches with `RATE_A <= 0` or invalid `RATE_A` must be treated as unconstrained and excluded from the maximum.
+- If no eligible constrained branches exist, set `s_line = -Inf`.
 
 ## Validation
-Phase 1 is complete only if:
-- `import ac_ext` works
-- there are no broken imports
-- config is centralized
-- minimal interfaces are defined
+Phase 2 is complete only if:
+- `python3 -c "import ac_ext"` works
+- a smoke test on a MATPOWER built-in case (for example `case14`) works
+- return values are minimal scalars by default
+- no legacy algorithm files are modified
+- no random-scenario logic is implemented
