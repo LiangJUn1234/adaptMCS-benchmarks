@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.pyo
+*.log
+repo_tree.txt
+matlab_case_tree.txt
+PIMs/python code/log.txt
+PIMs/python code/batch*
