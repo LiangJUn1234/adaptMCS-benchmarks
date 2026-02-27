@@ -1,7 +1,7 @@
-"""AC rare-event extension package (Phase 1 skeleton)."""
+"""AC rare-event extension package."""
 
 from .config import DEFAULTS
-from .problem import apply_state, eval_proxy, eval_truth, sample_X
+from .problem import apply_state, eval_proxy, eval_single_case, eval_truth, sample_X
 
 __all__ = [
     "DEFAULTS",
@@ -9,4 +9,5 @@ __all__ = [
     "apply_state",
     "eval_proxy",
     "eval_truth",
+    "eval_single_case",
 ]

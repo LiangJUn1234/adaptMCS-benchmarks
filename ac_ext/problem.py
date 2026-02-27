@@ -1,8 +1,12 @@
-"""Minimal problem interfaces for the AC rare-event extension (Phase 1)."""
+"""Problem interfaces for AC rare-event extension."""
+
+from __future__ import annotations
 
 from typing import Any, Dict, Mapping, Sequence
 
+from .events import validate_scalar_payload
 from .exceptions import InterfaceNotImplementedError, InvalidInputError
+from .matlab_engine import run_acopf, run_acpf, run_dcpf
 
 
 def sample_X(n: int, config: Mapping[str, Any]) -> Sequence[Any]:
@@ -17,7 +21,7 @@ def sample_X(n: int, config: Mapping[str, Any]) -> Sequence[Any]:
 
     Raises:
         InvalidInputError: If input arguments are invalid.
-        InterfaceNotImplementedError: Always in Phase 1 skeleton.
+        InterfaceNotImplementedError: Always in current phase.
 
     TODO:
         - Define concrete sample representation and dtype.
@@ -29,7 +33,7 @@ def sample_X(n: int, config: Mapping[str, Any]) -> Sequence[Any]:
     if not isinstance(config, Mapping):
         raise InvalidInputError("sample_X requires config to be a mapping.")
     raise InterfaceNotImplementedError(
-        "sample_X is a Phase 1 stub and is not implemented yet."
+        "sample_X is not implemented in this phase."
     )
 
 
@@ -45,7 +49,7 @@ def apply_state(case_data: Dict[str, Any], state: Mapping[str, Any]) -> Dict[str
 
     Raises:
         InvalidInputError: If inputs are missing or malformed.
-        InterfaceNotImplementedError: Always in Phase 1 skeleton.
+        InterfaceNotImplementedError: Always in current phase.
 
     TODO:
         - Define canonical schema for state-to-case transformations.
@@ -57,61 +61,77 @@ def apply_state(case_data: Dict[str, Any], state: Mapping[str, Any]) -> Dict[str
     if not isinstance(state, Mapping):
         raise InvalidInputError("apply_state requires state to be a mapping.")
     raise InterfaceNotImplementedError(
-        "apply_state is a Phase 1 stub and is not implemented yet."
+        "apply_state is not implemented in this phase."
     )
 
 
 def eval_proxy(case_data: Mapping[str, Any], config: Mapping[str, Any]) -> Dict[str, Any]:
-    """Evaluate a fast proxy metric for rare-event screening.
+    """Evaluate a proxy metric for scenario-based screening.
 
-    Args:
-        case_data: Case data after state application.
-        config: Unified AC extension config mapping.
-
-    Returns:
-        Placeholder for proxy evaluation outputs.
-
-    Raises:
-        InvalidInputError: If input arguments are invalid.
-        InterfaceNotImplementedError: Always in Phase 1 skeleton.
-
-    TODO:
-        - Define proxy output contract and score semantics.
-        - Add adapter boundaries for future lightweight models.
-        - Implement proxy execution and error normalization.
+    Raises InterfaceNotImplementedError in this phase because random
+    scenario workflow is out of scope.
     """
     if not isinstance(case_data, Mapping):
         raise InvalidInputError("eval_proxy requires case_data to be a mapping.")
     if not isinstance(config, Mapping):
         raise InvalidInputError("eval_proxy requires config to be a mapping.")
     raise InterfaceNotImplementedError(
-        "eval_proxy is a Phase 1 stub and is not implemented yet."
+        "eval_proxy for random scenarios is not implemented in this phase."
     )
 
 
 def eval_truth(case_data: Mapping[str, Any], config: Mapping[str, Any]) -> Dict[str, Any]:
-    """Evaluate truth model outputs for final rare-event decisioning.
+    """Evaluate truth model for scenario-based workflow.
 
-    Args:
-        case_data: Case data prepared for truth-model execution.
-        config: Unified AC extension config mapping.
-
-    Returns:
-        Placeholder for truth-model evaluation outputs.
-
-    Raises:
-        InvalidInputError: If input arguments are invalid.
-        InterfaceNotImplementedError: Always in Phase 1 skeleton.
-
-    TODO:
-        - Define truth output schema including failure semantics.
-        - Add future adapter boundary for MATLAB/solver integration.
-        - Implement robust runtime handling and result parsing.
+    Raises InterfaceNotImplementedError in this phase because random
+    scenario workflow is out of scope.
     """
     if not isinstance(case_data, Mapping):
         raise InvalidInputError("eval_truth requires case_data to be a mapping.")
     if not isinstance(config, Mapping):
         raise InvalidInputError("eval_truth requires config to be a mapping.")
     raise InterfaceNotImplementedError(
-        "eval_truth is a Phase 1 stub and is not implemented yet."
+        "eval_truth for random scenarios is not implemented in this phase."
     )
+
+
+def eval_single_case(
+    case_name: str,
+    config: Mapping[str, Any],
+    *,
+    debug: bool = False,
+) -> Dict[str, Dict[str, Any]]:
+    """Run minimal single-sample AC PF/AC OPF/DC PF on one intact case.
+
+    This helper is intentionally narrow and does not implement random
+    scenario generation/state application.
+    """
+    if not isinstance(case_name, str) or not case_name.strip():
+        raise InvalidInputError("case_name must be a non-empty MATPOWER case name.")
+    if not isinstance(config, Mapping):
+        raise InvalidInputError("config must be a mapping.")
+
+    ac_fail_as_violation = bool(config.get("ac_fail_as_violation", True))
+
+    acpf = validate_scalar_payload(
+        run_acpf(
+            case_name,
+            debug=debug,
+            ac_fail_as_violation=ac_fail_as_violation,
+        )
+    )
+    acopf = validate_scalar_payload(
+        run_acopf(
+            case_name,
+            debug=debug,
+            ac_fail_as_violation=ac_fail_as_violation,
+        )
+    )
+    dcpf = validate_scalar_payload(
+        run_dcpf(
+            case_name,
+            debug=debug,
+        )
+    )
+
+    return {"acpf": acpf, "acopf": acopf, "dcpf": dcpf}
