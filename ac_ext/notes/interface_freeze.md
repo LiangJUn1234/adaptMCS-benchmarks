@@ -81,3 +81,15 @@ MATLAB wrappers remain default source of truth for scalar computation.
 
 ## Important Case Note
 MATPOWER built-in `case14` commonly has `RATE_A = 0` (unconstrained lines), so `s_line = -Inf` is expected in smoke runs. Use PGLib cases for line-limit studies.
+
+## Additional Frozen Constraints (Phase 4 Addendum)
+
+### No MATLAB struct round-trip in default runtime path
+- Default runtime must NOT return a full MATPOWER `mpc` struct back to Python and then feed it into MATPOWER solvers again.
+- Any MATLAB-side case struct may only be used for debug/inspection and must never be a required runtime dependency.
+- Default damaged-case evaluation must happen fully on MATLAB side (apply + solve + scalar scores), returning only scalar outputs.
+
+### `sample_X` return type contract
+- `sample_X(..., n=k)` must return a Python `list` of length `k`.
+- Even for `n=1`, the canonical return type is a `list` with one state element.
+- Callers may accept a single `dict` for backward compatibility, but Phase 5+ baseline loops must treat the canonical output as list.
