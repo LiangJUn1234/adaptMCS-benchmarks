@@ -23,3 +23,11 @@ class MatlabPathError(ACExtensionError, RuntimeError):
 
 class MatlabExecutionError(ACExtensionError, RuntimeError):
     """Raised when a MATLAB wrapper invocation fails."""
+
+
+class StateSamplingError(ACExtensionError, RuntimeError):
+    """Raised when discrete damage-state sampling fails."""
+
+
+class StateApplicationError(ACExtensionError, RuntimeError):
+    """Raised when discrete damage-state application fails."""
