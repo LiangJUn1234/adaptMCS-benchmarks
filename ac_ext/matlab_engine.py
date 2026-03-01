@@ -29,7 +29,7 @@ def _matlab_dir() -> Path:
 def _get_engine_api():
     try:
         import matlab.engine  # type: ignore
-    except Exception as exc:  # pragma: no cover - depends on system MATLAB install
+    except Exception as exc:  # pragma: no cover - depends on local MATLAB install
         raise MatlabEngineUnavailableError(
             "matlab.engine could not be imported. Install MATLAB Engine for Python."
         ) from exc
@@ -60,18 +60,19 @@ def _ensure_wrapper_path(engine: Any) -> None:
 
 
 def _sanitize_solver_path(engine: Any) -> None:
-    """Remove known noisy optional OSQP path only if it is on MATLAB path."""
-    escaped = _OSQP_NOISE_PATH.replace("'", "''")
-    cmd = (
-        "p = strsplit(path, pathsep); "
-        f"if any(strcmp(p, '{escaped}')), "
-        f"try, rmpath('{escaped}'); catch, end; "
-        "end"
-    )
+    """Best-effort removal of known noisy optional OSQP path."""
     try:
-        engine.eval(cmd, nargout=0)
+        current_path = engine.path(nargout=1)
+        if isinstance(current_path, str):
+            entries = current_path.split(":")
+            if _OSQP_NOISE_PATH in entries:
+                engine.rmpath(_OSQP_NOISE_PATH, nargout=0)
     except Exception:
         pass
+
+
+def _is_damaged_case_token(case_data: Any) -> bool:
+    return hasattr(case_data, "case_data") and hasattr(case_data, "state")
 
 
 def get_engine(reuse: bool = True) -> Any:
@@ -141,108 +142,6 @@ def _call_wrapper(
     return converted
 
 
-def run_acpf(
-    case_data: Any,
-    *,
-    debug: bool = False,
-    ac_fail_as_violation: bool = True,
-    reuse_engine: bool = True,
-) -> Dict[str, Any]:
-    """Run minimal AC PF wrapper and return scalar score payload."""
-    if hasattr(case_data, "case_data") and hasattr(case_data, "state"):
-        return _call_damaged_wrapper(
-            case_data.case_data, case_data.state, "acpf",
-            debug=debug, ac_fail_as_violation=ac_fail_as_violation, reuse_engine=reuse_engine
-        )
-
-    return _call_wrapper(
-        "mp_run_acpf_minimal",
-        case_data,
-        debug=debug,
-        ac_fail_as_violation=ac_fail_as_violation,
-        reuse_engine=reuse_engine,
-    )
-
-
-def run_acopf(
-    case_data: Any,
-    *,
-    debug: bool = False,
-    ac_fail_as_violation: bool = True,
-    reuse_engine: bool = True,
-) -> Dict[str, Any]:
-    """Run minimal AC OPF wrapper and return scalar score payload."""
-    if hasattr(case_data, "case_data") and hasattr(case_data, "state"):
-        return _call_damaged_wrapper(
-            case_data.case_data, case_data.state, "acopf",
-            debug=debug, ac_fail_as_violation=ac_fail_as_violation, reuse_engine=reuse_engine
-        )
-
-    return _call_wrapper(
-        "mp_run_acopf_minimal",
-        case_data,
-        debug=debug,
-        ac_fail_as_violation=ac_fail_as_violation,
-        reuse_engine=reuse_engine,
-    )
-
-
-def run_dcpf(
-    case_data: Any,
-    *,
-    debug: bool = False,
-    reuse_engine: bool = True,
-) -> Dict[str, Any]:
-    """Run minimal DC PF wrapper and return scalar score payload."""
-    if hasattr(case_data, "case_data") and hasattr(case_data, "state"):
-        return _call_damaged_wrapper(
-            case_data.case_data, case_data.state, "dcpf",
-            debug=debug, ac_fail_as_violation=False, reuse_engine=reuse_engine
-        )
-
-    return _call_wrapper(
-        "mp_run_dcpf_minimal",
-        case_data,
-        debug=debug,
-        ac_fail_as_violation=False,
-        reuse_engine=reuse_engine,
-    )
-
-
-def get_case_sanity(case_data: Any, *, reuse_engine: bool = True) -> Dict[str, float]:
-    """Return basic case sanity counts/totals via MATLAB helper."""
-    engine = get_engine(reuse=reuse_engine)
-    _sanitize_solver_path(engine)
-    try:
-        result = engine.mp_case_sanity_minimal(case_data, nargout=1)
-    except Exception as exc:
-        raise MatlabExecutionError(f"mp_case_sanity_minimal failed: {exc}") from exc
-
-    converted = _struct_to_dict(result)
-    if not isinstance(converted, dict):
-        raise MatlabExecutionError("mp_case_sanity_minimal returned non-struct output.")
-    return converted
-
-
-def apply_damage_state(
-    case_data: Any,
-    state: Mapping[str, Any],
-    *,
-    reuse_engine: bool = True,
-) -> Any:
-    """Apply discrete damage state on MATLAB side and return transformed case struct."""
-    if not isinstance(state, Mapping):
-        raise InvalidInputError("state must be a mapping.")
-
-    payload = json.dumps(state)
-    engine = get_engine(reuse=reuse_engine)
-    _sanitize_solver_path(engine)
-
-    try:
-        return engine.mp_apply_damage_state_minimal(case_data, payload, nargout=1)
-    except Exception as exc:
-        raise StateApplicationError(f"mp_apply_damage_state_minimal failed: {exc}") from exc
-    
 def _call_damaged_wrapper(
     case_data: Any,
     state: Mapping[str, Any],
@@ -280,6 +179,114 @@ def _call_damaged_wrapper(
         )
     return converted
 
+
+def run_acpf(
+    case_data: Any,
+    *,
+    debug: bool = False,
+    ac_fail_as_violation: bool = True,
+    reuse_engine: bool = True,
+) -> Dict[str, Any]:
+    """Run minimal AC PF wrapper and return scalar score payload."""
+    if _is_damaged_case_token(case_data):
+        return _call_damaged_wrapper(
+            case_data.case_data,
+            case_data.state,
+            "acpf",
+            debug=debug,
+            ac_fail_as_violation=ac_fail_as_violation,
+            reuse_engine=reuse_engine,
+        )
+
+    return _call_wrapper(
+        "mp_run_acpf_minimal",
+        case_data,
+        debug=debug,
+        ac_fail_as_violation=ac_fail_as_violation,
+        reuse_engine=reuse_engine,
+    )
+
+
+def run_acopf(
+    case_data: Any,
+    *,
+    debug: bool = False,
+    ac_fail_as_violation: bool = True,
+    reuse_engine: bool = True,
+) -> Dict[str, Any]:
+    """Run minimal AC OPF wrapper and return scalar score payload."""
+    if _is_damaged_case_token(case_data):
+        return _call_damaged_wrapper(
+            case_data.case_data,
+            case_data.state,
+            "acopf",
+            debug=debug,
+            ac_fail_as_violation=ac_fail_as_violation,
+            reuse_engine=reuse_engine,
+        )
+
+    return _call_wrapper(
+        "mp_run_acopf_minimal",
+        case_data,
+        debug=debug,
+        ac_fail_as_violation=ac_fail_as_violation,
+        reuse_engine=reuse_engine,
+    )
+
+
+def run_dcpf(
+    case_data: Any,
+    *,
+    debug: bool = False,
+    ac_fail_as_violation: bool = True,
+    reuse_engine: bool = True,
+) -> Dict[str, Any]:
+    """Run minimal DC PF wrapper and return scalar score payload."""
+    if _is_damaged_case_token(case_data):
+        return _call_damaged_wrapper(
+            case_data.case_data,
+            case_data.state,
+            "dcpf",
+            debug=debug,
+            ac_fail_as_violation=ac_fail_as_violation,
+            reuse_engine=reuse_engine,
+        )
+
+    return _call_wrapper(
+        "mp_run_dcpf_minimal",
+        case_data,
+        debug=debug,
+        ac_fail_as_violation=ac_fail_as_violation,
+        reuse_engine=reuse_engine,
+    )
+
+def run_fdxb(
+    case_data: Any,
+    *,
+    debug: bool = False,
+    ac_fail_as_violation: bool = True,
+    reuse_engine: bool = True,
+) -> Dict[str, Any]:
+    """Run minimal FDXB wrapper and return scalar score payload."""
+    if _is_damaged_case_token(case_data):
+        return _call_damaged_wrapper(
+            case_data.case_data,
+            case_data.state,
+            "fdxb",
+            debug=debug,
+            ac_fail_as_violation=ac_fail_as_violation,
+            reuse_engine=reuse_engine,
+        )
+
+    return _call_wrapper(
+        "mp_run_fdxb_minimal",
+        case_data,
+        debug=debug,
+        ac_fail_as_violation=ac_fail_as_violation,
+        reuse_engine=reuse_engine,
+    )
+
+
 def run_acpf_damaged(
     case_data: Any,
     state: Mapping[str, Any],
@@ -289,9 +296,14 @@ def run_acpf_damaged(
     reuse_engine: bool = True,
 ) -> Dict[str, Any]:
     return _call_damaged_wrapper(
-        case_data, state, "acpf", debug=debug, 
-        ac_fail_as_violation=ac_fail_as_violation, reuse_engine=reuse_engine
+        case_data,
+        state,
+        "acpf",
+        debug=debug,
+        ac_fail_as_violation=ac_fail_as_violation,
+        reuse_engine=reuse_engine,
     )
+
 
 def run_acopf_damaged(
     case_data: Any,
@@ -302,21 +314,64 @@ def run_acopf_damaged(
     reuse_engine: bool = True,
 ) -> Dict[str, Any]:
     return _call_damaged_wrapper(
-        case_data, state, "acopf", debug=debug, 
-        ac_fail_as_violation=ac_fail_as_violation, reuse_engine=reuse_engine
+        case_data,
+        state,
+        "acopf",
+        debug=debug,
+        ac_fail_as_violation=ac_fail_as_violation,
+        reuse_engine=reuse_engine,
     )
+
 
 def run_dcpf_damaged(
     case_data: Any,
     state: Mapping[str, Any],
     *,
     debug: bool = False,
+    ac_fail_as_violation: bool = True,
     reuse_engine: bool = True,
 ) -> Dict[str, Any]:
     return _call_damaged_wrapper(
-        case_data, state, "dcpf", debug=debug, 
-        ac_fail_as_violation=False, reuse_engine=reuse_engine
+        case_data,
+        state,
+        "dcpf",
+        debug=debug,
+        ac_fail_as_violation=ac_fail_as_violation,
+        reuse_engine=reuse_engine,
     )
+
+def run_fdxb_damaged(
+    case_data: Any,
+    state: Mapping[str, Any],
+    *,
+    debug: bool = False,
+    ac_fail_as_violation: bool = True,
+    reuse_engine: bool = True,
+) -> Dict[str, Any]:
+    return _call_damaged_wrapper(
+        case_data,
+        state,
+        "fdxb",
+        debug=debug,
+        ac_fail_as_violation=ac_fail_as_violation,
+        reuse_engine=reuse_engine,
+    )
+
+
+def get_case_sanity(case_data: Any, *, reuse_engine: bool = True) -> Dict[str, float]:
+    """Return basic case sanity counts/totals via MATLAB helper."""
+    engine = get_engine(reuse=reuse_engine)
+    _sanitize_solver_path(engine)
+    try:
+        result = engine.mp_case_sanity_minimal(case_data, nargout=1)
+    except Exception as exc:
+        raise MatlabExecutionError(f"mp_case_sanity_minimal failed: {exc}") from exc
+
+    converted = _struct_to_dict(result)
+    if not isinstance(converted, dict):
+        raise MatlabExecutionError("mp_case_sanity_minimal returned non-struct output.")
+    return converted
+
 
 def get_case_sanity_after_damage(
     case_data: Any,
@@ -324,6 +379,7 @@ def get_case_sanity_after_damage(
     *,
     reuse_engine: bool = True,
 ) -> Dict[str, float]:
+    """Return sanity metrics for a damaged case without materializing the struct in Python."""
     if not isinstance(state, Mapping):
         raise InvalidInputError("state must be a mapping.")
 
@@ -338,5 +394,27 @@ def get_case_sanity_after_damage(
 
     converted = _struct_to_dict(result)
     if not isinstance(converted, dict):
-        raise MatlabExecutionError("mp_case_sanity_after_damage_minimal returned non-struct output.")
+        raise MatlabExecutionError(
+            "mp_case_sanity_after_damage_minimal returned non-struct output."
+        )
     return converted
+
+
+def apply_damage_state(
+    case_data: Any,
+    state: Mapping[str, Any],
+    *,
+    reuse_engine: bool = True,
+) -> Any:
+    """Apply discrete damage state on MATLAB side and return transformed case struct."""
+    if not isinstance(state, Mapping):
+        raise InvalidInputError("state must be a mapping.")
+
+    payload = json.dumps(state)
+    engine = get_engine(reuse=reuse_engine)
+    _sanitize_solver_path(engine)
+
+    try:
+        return engine.mp_apply_damage_state_minimal(case_data, payload, nargout=1)
+    except Exception as exc:
+        raise StateApplicationError(f"mp_apply_damage_state_minimal failed: {exc}") from exc

@@ -31,7 +31,9 @@ switch mode
     case 'acopf'
         out = mp_run_acopf_minimal(mpc_damaged, debug, ac_fail_as_violation);
     case 'dcpf'
-        out = mp_run_dcpf_minimal(mpc_damaged, debug, false);
+        out = mp_run_dcpf_minimal(mpc_damaged, debug, ac_fail_as_violation);
+    case 'fdxb'  % <--- 新增的 FDXB 路由分支！
+        out = mp_run_fdxb_minimal(mpc_damaged, debug, ac_fail_as_violation);
     otherwise
         error('Unsupported damaged evaluation mode: %s', mode);
 end

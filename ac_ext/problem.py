@@ -5,13 +5,6 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 from typing import Any, Dict, List, Mapping, Optional, Sequence
-@dataclass(frozen=True)
-class DamagedCaseSpec:
-    """Lightweight token representing a damaged MATPOWER case.
-    Prevents massive MATLAB structs from round-tripping through Python.
-    """
-    case_data: Any
-    state: Mapping[str, Any]
 
 from .config import DEFAULTS
 from .events import validate_scalar_payload
@@ -20,7 +13,6 @@ from .exceptions import (
     InvalidInputError,
     StateSamplingError,
 )
-
 from .matlab_engine import (
     apply_damage_state,
     get_case_sanity,
@@ -28,10 +20,19 @@ from .matlab_engine import (
     run_acopf,
     run_acpf,
     run_dcpf,
-    run_acopf_damaged,
-    run_acpf_damaged,
-    run_dcpf_damaged,
+    run_fdxb,
 )
+
+
+@dataclass(frozen=True)
+class DamagedCaseSpec:
+    """Lightweight token representing a damaged MATPOWER case.
+
+    Prevents massive MATLAB structs from round-tripping through Python.
+    """
+    case_data: Any
+    state: Mapping[str, Any]
+
 
 def _merged_config(config: Optional[Mapping[str, Any]]) -> Dict[str, Any]:
     merged = dict(DEFAULTS)
@@ -50,6 +51,7 @@ def _validate_sampling_config(config: Mapping[str, Any]) -> None:
 
     values = list(config["gen_derate_state_values"])
     probs = list(config["gen_derate_state_probs"])
+
     if not values:
         raise InvalidInputError("gen_derate_state_values must be non-empty.")
     if len(values) != len(probs):
@@ -64,13 +66,43 @@ def _validate_sampling_config(config: Mapping[str, Any]) -> None:
         raise InvalidInputError("gen_derate_state_probs must have positive total weight.")
 
 
+def _validate_state_payload(state: Mapping[str, Any]) -> None:
+    required = ("line_out", "bus_out", "gen_derate_state", "gen_scale")
+    missing = [name for name in required if name not in state]
+    if missing:
+        raise InvalidInputError(f"state is missing required fields: {missing}")
+
+    line_out = list(state["line_out"])
+    bus_out = list(state["bus_out"])
+    gen_derate_state = list(state["gen_derate_state"])
+    gen_scale = list(state["gen_scale"])
+
+    if any(v not in (0, 1) for v in line_out):
+        raise InvalidInputError("line_out entries must be in {0, 1}.")
+    if any(v not in (0, 1) for v in bus_out):
+        raise InvalidInputError("bus_out entries must be in {0, 1}.")
+    if any(int(v) != v or v < 0 for v in gen_derate_state):
+        raise InvalidInputError("gen_derate_state entries must be non-negative integers.")
+    if len(gen_derate_state) != len(gen_scale):
+        raise InvalidInputError("gen_derate_state and gen_scale must have equal length.")
+
+    meta = state.get("meta")
+    if isinstance(meta, Mapping):
+        if "n_branch" in meta and len(line_out) != int(meta["n_branch"]):
+            raise InvalidInputError("line_out length does not match meta['n_branch'].")
+        if "n_bus" in meta and len(bus_out) != int(meta["n_bus"]):
+            raise InvalidInputError("bus_out length does not match meta['n_bus'].")
+        if "n_gen" in meta and len(gen_scale) != int(meta["n_gen"]):
+            raise InvalidInputError("gen_scale length does not match meta['n_gen'].")
+
+
 def sample_X(
     case_data: Any = "case14",
     config: Optional[Mapping[str, Any]] = None,
     *,
     n: int = 1,
     seed: Optional[int] = None,
-) -> Sequence[Dict[str, Any]] | Dict[str, Any]:
+) -> Sequence[Dict[str, Any]]:
     """Sample discrete component damage states for a MATPOWER case.
 
     Output representation for each sampled state:
@@ -80,22 +112,8 @@ def sample_X(
     - `gen_scale`: list[float], length n_gen; resolved derating multiplier.
     - `meta`: dict with `seed` and case dimensions.
 
-    Args:
-        n: Number of damage states to sample.
-        config: Unified AC extension config mapping.
-        case_data: MATPOWER case name or struct for dimension inference.
-        seed: Optional deterministic RNG seed.
-
     Returns:
-        Sequence of sampled discrete damage states.
-
-    Raises:
-        InvalidInputError: For invalid inputs or configuration values.
-        StateSamplingError: If case dimensions cannot be resolved.
-
-    TODO:
-        - Add optional component-group correlated outage model.
-        - Add schema version tag for state payload evolution.
+        Canonical Python list of sampled states for all n >= 1, including n=1.
     """
     if n <= 0:
         raise InvalidInputError("sample_X requires n > 0.")
@@ -125,64 +143,90 @@ def sample_X(
     for _ in range(n):
         line_out = [1 if rng.random() < p_line else 0 for _ in range(n_branch)]
         bus_out = [1 if rng.random() < p_bus else 0 for _ in range(n_bus)]
-
         gen_states = rng.choices(range(len(derate_values)), weights=derate_probs, k=n_gen)
         gen_scale = [derate_values[idx] for idx in gen_states]
 
-        samples.append(
-            {
-                "line_out": line_out,
-                "bus_out": bus_out,
-                "gen_derate_state": gen_states,
-                "gen_scale": gen_scale,
-                "meta": {
-                    "seed": seed,
-                    "n_bus": n_bus,
-                    "n_branch": n_branch,
-                    "n_gen": n_gen,
-                },
-            }
-        )
+        state = {
+            "line_out": line_out,
+            "bus_out": bus_out,
+            "gen_derate_state": gen_states,
+            "gen_scale": gen_scale,
+            "meta": {
+                "seed": seed,
+                "n_bus": n_bus,
+                "n_branch": n_branch,
+                "n_gen": n_gen,
+            },
+        }
+        _validate_state_payload(state)
+        samples.append(state)
 
-    return samples[0] if n == 1 else samples
+    return samples
+
 
 def apply_state(
     case_data: Any,
     state: Mapping[str, Any],
 ) -> DamagedCaseSpec:
     """Return a lightweight token representing the damaged case.
-    
-    This avoids returning the materialized MATLAB struct to Python, 
-    preventing IPC overhead and MATPOWER ext2int type-corruption crashes.
+
+    This avoids returning the materialized MATLAB struct to Python,
+    preventing IPC overhead and MATPOWER struct round-trip issues.
     """
     if not isinstance(state, Mapping):
         raise InvalidInputError("apply_state requires state to be a mapping.")
-    required = ("line_out", "bus_out", "gen_derate_state", "gen_scale")
-    missing = [name for name in required if name not in state]
-    if missing:
-        raise InvalidInputError(f"apply_state state is missing required fields: {missing}")
-
+    _validate_state_payload(state)
     return DamagedCaseSpec(case_data=case_data, state=state)
+
 
 def apply_state_debug(
     case_data: Any,
     state: Mapping[str, Any],
 ) -> Any:
-    """WARNING: Materializes and returns the full MATLAB struct.
-    For debugging only. Do NOT pass the result back to run_acpf/opf.
-    """
+    """Materialize and return the full MATLAB struct for debugging only."""
+    _validate_state_payload(state)
     return apply_damage_state(case_data, state)
 
 
+def eval_proxy(
+    case_name: str,
+    state: Mapping[str, Any],
+    config: Mapping[str, Any],
+    *,
+    proxy_mode: str = "dcpf",
+    debug: bool = False,
+) -> Dict[str, Any]:
+    """Evaluate a single damaged case using the selected proxy solver.
 
-def eval_proxy(case_data: Mapping[str, Any], config: Mapping[str, Any]) -> Dict[str, Any]:
-    """Evaluate proxy metric for scenario-based screening (out of scope)."""
-    if not isinstance(case_data, Mapping):
-        raise InvalidInputError("eval_proxy requires case_data to be a mapping.")
+    Supported proxy modes:
+    - 'dcpf'
+    - 'fdxb'
+    """
+    if not isinstance(case_name, str) or not case_name.strip():
+        raise InvalidInputError("case_name must be a non-empty MATPOWER case name.")
     if not isinstance(config, Mapping):
-        raise InvalidInputError("eval_proxy requires config to be a mapping.")
-    raise InterfaceNotImplementedError(
-        "eval_proxy for random scenarios is not implemented in this phase."
+        raise InvalidInputError("config must be a mapping.")
+    if proxy_mode not in {"dcpf", "fdxb"}:
+        raise InvalidInputError("proxy_mode must be one of {'dcpf', 'fdxb'}.")
+
+    ac_fail_as_violation = bool(config.get("ac_fail_as_violation", True))
+    damaged = apply_state(case_name, state)
+
+    if proxy_mode == "dcpf":
+        return validate_scalar_payload(
+            run_dcpf(
+                damaged,
+                debug=debug,
+                ac_fail_as_violation=ac_fail_as_violation,
+            )
+        )
+
+    return validate_scalar_payload(
+        run_fdxb(
+            damaged,
+            debug=debug,
+            ac_fail_as_violation=ac_fail_as_violation,
+        )
     )
 
 
@@ -229,6 +273,7 @@ def eval_single_case(
         run_dcpf(
             case_name,
             debug=debug,
+            ac_fail_as_violation=ac_fail_as_violation,
         )
     )
 
@@ -242,26 +287,35 @@ def eval_single_damaged_case(
     *,
     debug: bool = False,
 ) -> Dict[str, Dict[str, Any]]:
-    """Run single-sample solvers on a MATLAB-side damaged case payload."""
+    """Run single-sample solvers on a MATLAB-side damaged case token."""
     if not isinstance(case_name, str) or not case_name.strip():
         raise InvalidInputError("case_name must be a non-empty MATPOWER case name.")
     if not isinstance(config, Mapping):
         raise InvalidInputError("config must be a mapping.")
 
     ac_fail_as_violation = bool(config.get("ac_fail_as_violation", True))
-
-    # 1. 获取轻量级 Token
     damaged = apply_state(case_name, state)
 
-    # 2. 像完整 case 一样直接传入普通 wrapper
     acpf = validate_scalar_payload(
-        run_acpf(damaged, debug=debug, ac_fail_as_violation=ac_fail_as_violation)
+        run_acpf(
+            damaged,
+            debug=debug,
+            ac_fail_as_violation=ac_fail_as_violation,
+        )
     )
     acopf = validate_scalar_payload(
-        run_acopf(damaged, debug=debug, ac_fail_as_violation=ac_fail_as_violation)
+        run_acopf(
+            damaged,
+            debug=debug,
+            ac_fail_as_violation=ac_fail_as_violation,
+        )
     )
     dcpf = validate_scalar_payload(
-        run_dcpf(damaged, debug=debug)
+        run_dcpf(
+            damaged,
+            debug=debug,
+            ac_fail_as_violation=ac_fail_as_violation,
+        )
     )
 
     return {"acpf": acpf, "acopf": acopf, "dcpf": dcpf}
@@ -271,8 +325,10 @@ def case_sanity(case_data: Any) -> Dict[str, float]:
     """Return sanity metrics: branch-online count, online PMAX total, PD total."""
     return get_case_sanity(case_data)
 
+
 def case_sanity_after_damage(case_data: Any, state: Mapping[str, Any]) -> Dict[str, float]:
-    """Return sanity metrics for a damaged case without returning the full struct."""
+    """Return sanity metrics for a damaged case without materializing full struct in Python."""
+    _validate_state_payload(state)
     return get_case_sanity_after_damage(case_data, state)
 
 
