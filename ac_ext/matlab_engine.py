@@ -16,6 +16,8 @@ from .exceptions import (
 
 _ENGINE = None
 _OSQP_NOISE_PATH = "/home/lhftr/code/power-rare-events/matpower/mp-opt-model/.github/osqp"
+# 新增：PGLib 用例所在的路径
+_PGLIB_PATH = "/home/lhftr/code/power-rare-events/pglib-opf"
 
 
 def _module_dir() -> Path:
@@ -86,6 +88,13 @@ def get_engine(reuse: bool = True) -> Any:
         engine = engine_api.start_matlab()
     except Exception as exc:
         raise MatlabEngineUnavailableError("Unable to start MATLAB engine session.") from exc
+
+    # 核心修复：确保 PGLib 路径被添加到 MATLAB 搜索路径
+    try:
+        engine.addpath(_PGLIB_PATH, nargout=0)
+    except Exception as exc:
+        # 这里使用打印警告而非抛出异常，防止因路径微调导致的程序崩溃
+        print(f"Warning: Could not add PGLib path {_PGLIB_PATH}: {exc}")
 
     _ensure_wrapper_path(engine)
     _sanitize_solver_path(engine)
@@ -260,6 +269,33 @@ def run_dcpf(
         reuse_engine=reuse_engine,
     )
 
+
+def run_dcopf(
+    case_data: Any,
+    *,
+    debug: bool = False,
+    ac_fail_as_violation: bool = True,
+    reuse_engine: bool = True,
+) -> Dict[str, Any]:
+    """Run minimal DC OPF wrapper and return scalar score payload."""
+    if _is_damaged_case_token(case_data):
+        return run_dcopf_damaged(
+            case_data.case_data,
+            case_data.state,
+            debug=debug,
+            ac_fail_as_violation=ac_fail_as_violation,
+            reuse_engine=reuse_engine,
+        )
+
+    return _call_wrapper(
+        "mp_run_dcopf_minimal",
+        case_data,
+        debug=debug,
+        ac_fail_as_violation=ac_fail_as_violation,
+        reuse_engine=reuse_engine,
+    )
+
+
 def run_fdxb(
     case_data: Any,
     *,
@@ -339,6 +375,44 @@ def run_dcpf_damaged(
         ac_fail_as_violation=ac_fail_as_violation,
         reuse_engine=reuse_engine,
     )
+
+
+def run_dcopf_damaged(
+    case_data: Any,
+    state: Mapping[str, Any],
+    *,
+    debug: bool = False,
+    ac_fail_as_violation: bool = True,
+    reuse_engine: bool = True,
+) -> Dict[str, Any]:
+    """Run DC OPF on damaged case using existing apply+wrapper surfaces."""
+    if not isinstance(state, Mapping):
+        raise InvalidInputError("state must be a mapping.")
+
+    payload = json.dumps(state)
+    engine = get_engine(reuse=reuse_engine)
+    _sanitize_solver_path(engine)
+
+    try:
+        mpc_damaged = engine.mp_apply_damage_state_minimal(case_data, payload, nargout=1)
+        result = engine.mp_run_dcopf_minimal(
+            mpc_damaged,
+            bool(debug),
+            bool(ac_fail_as_violation),
+            nargout=1,
+        )
+    except Exception as exc:
+        raise MatlabExecutionError(
+            f"MATLAB damaged-case DCOPF evaluation failed: {exc}"
+        ) from exc
+
+    converted = _struct_to_dict(result)
+    if not isinstance(converted, dict):
+        raise MatlabExecutionError(
+            "Damaged-case MATLAB DCOPF evaluation returned non-struct output."
+        )
+    return converted
+
 
 def run_fdxb_damaged(
     case_data: Any,

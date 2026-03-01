@@ -19,6 +19,7 @@ from .matlab_engine import (
     get_case_sanity_after_damage,
     run_acopf,
     run_acpf,
+    run_dcopf,
     run_dcpf,
     run_fdxb,
 )
@@ -201,13 +202,14 @@ def eval_proxy(
     Supported proxy modes:
     - 'dcpf'
     - 'fdxb'
+    - 'dcopf'
     """
     if not isinstance(case_name, str) or not case_name.strip():
         raise InvalidInputError("case_name must be a non-empty MATPOWER case name.")
     if not isinstance(config, Mapping):
         raise InvalidInputError("config must be a mapping.")
-    if proxy_mode not in {"dcpf", "fdxb"}:
-        raise InvalidInputError("proxy_mode must be one of {'dcpf', 'fdxb'}.")
+    if proxy_mode not in {"dcpf", "fdxb", "dcopf"}:
+        raise InvalidInputError("proxy_mode must be one of {'dcpf', 'fdxb', 'dcopf'}.")
 
     ac_fail_as_violation = bool(config.get("ac_fail_as_violation", True))
     damaged = apply_state(case_name, state)
@@ -215,6 +217,14 @@ def eval_proxy(
     if proxy_mode == "dcpf":
         return validate_scalar_payload(
             run_dcpf(
+                damaged,
+                debug=debug,
+                ac_fail_as_violation=ac_fail_as_violation,
+            )
+        )
+    if proxy_mode == "dcopf":
+        return validate_scalar_payload(
+            run_dcopf(
                 damaged,
                 debug=debug,
                 ac_fail_as_violation=ac_fail_as_violation,
