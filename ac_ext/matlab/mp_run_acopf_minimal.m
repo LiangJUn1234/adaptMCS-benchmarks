@@ -26,6 +26,7 @@ end
 mpc = local_load_case(case_data);
 mpopt = mpoption('verbose', 0, 'out.all', 0);
 
+warning('off', 'MATLAB:rmpath:DirNotFound'); try, opt_path = fileparts(which('opt_model')); osqp_path = fullfile(opt_path, '.github', 'osqp'); if contains(path, osqp_path), rmpath(osqp_path); end, catch, end; warning('on', 'MATLAB:rmpath:DirNotFound');
 result = runopf(mpc, mpopt);
 success = logical(result.success);
 out = local_finalize_output(result, success, debug, ac_fail_as_violation);

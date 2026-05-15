@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import json
+import logging
+import os
+import threading
 from pathlib import Path
 from typing import Any, Dict, Mapping
 
+from .config import OSQP_NOISE_PATH, PGLIB_PATH
 from .exceptions import (
     InvalidInputError,
     MatlabEngineUnavailableError,
@@ -15,9 +19,7 @@ from .exceptions import (
 )
 
 _ENGINE = None
-_OSQP_NOISE_PATH = "/home/lhftr/code/power-rare-events/matpower/mp-opt-model/.github/osqp"
-# 新增：PGLib 用例所在的路径
-_PGLIB_PATH = "/home/lhftr/code/power-rare-events/pglib-opf"
+LOGGER = logging.getLogger(__name__)
 
 
 def _module_dir() -> Path:
@@ -53,6 +55,18 @@ def _struct_to_dict(value: Any) -> Any:
     return value
 
 
+def _failure_payload(*, error: str | None = None) -> Dict[str, Any]:
+    payload: Dict[str, Any] = {
+        "success": False,
+        "s_line": float("inf"),
+        "s_volt": float("inf"),
+        "s_any": float("inf"),
+    }
+    if error is not None:
+        payload["error"] = error
+    return payload
+
+
 def _ensure_wrapper_path(engine: Any) -> None:
     matlab_path = str(_matlab_dir())
     try:
@@ -66,15 +80,52 @@ def _sanitize_solver_path(engine: Any) -> None:
     try:
         current_path = engine.path(nargout=1)
         if isinstance(current_path, str):
-            entries = current_path.split(":")
-            if _OSQP_NOISE_PATH in entries:
-                engine.rmpath(_OSQP_NOISE_PATH, nargout=0)
+            entries = current_path.split(os.pathsep)
+            osqp_noise_path = str(OSQP_NOISE_PATH)
+            if osqp_noise_path in entries:
+                engine.rmpath(osqp_noise_path, nargout=0)
     except Exception:
         pass
 
 
 def _is_damaged_case_token(case_data: Any) -> bool:
     return hasattr(case_data, "case_data") and hasattr(case_data, "state")
+
+
+def _matlab_start_options() -> str:
+    """Return MATLAB engine startup options tuned for non-interactive runs."""
+    return os.environ.get("MATLAB_ENGINE_OPTIONS", "-nodesktop -nosplash")
+
+
+def _matlab_start_timeout_sec() -> float:
+    """Return MATLAB engine startup timeout in seconds."""
+    return float(os.environ.get("MATLAB_ENGINE_START_TIMEOUT_SEC", "120"))
+
+
+def _start_engine_with_timeout(engine_api: Any) -> Any:
+    """Start MATLAB engine with bounded wait to avoid indefinite hangs."""
+    result: Dict[str, Any] = {}
+    options = _matlab_start_options()
+    timeout_sec = _matlab_start_timeout_sec()
+
+    def _worker() -> None:
+        try:
+            result["engine"] = engine_api.start_matlab(options)
+        except Exception as exc:  # pragma: no cover - depends on local MATLAB install
+            result["error"] = exc
+
+    thread = threading.Thread(target=_worker, daemon=True)
+    thread.start()
+    thread.join(timeout=timeout_sec)
+
+    if thread.is_alive():
+        raise MatlabEngineUnavailableError(
+            f"MATLAB engine startup exceeded timeout ({timeout_sec:.0f}s) "
+            f"with options: {options!r}"
+        )
+    if "error" in result:
+        raise MatlabEngineUnavailableError("Unable to start MATLAB engine session.") from result["error"]
+    return result["engine"]
 
 
 def get_engine(reuse: bool = True) -> Any:
@@ -85,16 +136,17 @@ def get_engine(reuse: bool = True) -> Any:
 
     engine_api = _get_engine_api()
     try:
-        engine = engine_api.start_matlab()
+        engine = _start_engine_with_timeout(engine_api)
+    except MatlabEngineUnavailableError:
+        raise
     except Exception as exc:
         raise MatlabEngineUnavailableError("Unable to start MATLAB engine session.") from exc
 
-    # 核心修复：确保 PGLib 路径被添加到 MATLAB 搜索路径
+    pglib_path = str(PGLIB_PATH)
     try:
-        engine.addpath(_PGLIB_PATH, nargout=0)
+        engine.addpath(pglib_path, nargout=0)
     except Exception as exc:
-        # 这里使用打印警告而非抛出异常，防止因路径微调导致的程序崩溃
-        print(f"Warning: Could not add PGLib path {_PGLIB_PATH}: {exc}")
+        print(f"Warning: Could not add PGLib path {pglib_path}: {exc}")
 
     _ensure_wrapper_path(engine)
     _sanitize_solver_path(engine)
@@ -139,15 +191,15 @@ def _call_wrapper(
     try:
         result = wrapper(case_data, bool(debug), bool(ac_fail_as_violation), nargout=1)
     except Exception as exc:
-        raise MatlabExecutionError(
-            f"MATLAB wrapper '{wrapper_name}' execution failed: {exc}"
-        ) from exc
+        message = f"MATLAB wrapper '{wrapper_name}' execution failed: {exc}"
+        LOGGER.warning("WARNING: %s", message)
+        return _failure_payload(error=message)
 
     converted = _struct_to_dict(result)
     if not isinstance(converted, dict):
-        raise MatlabExecutionError(
-            f"MATLAB wrapper '{wrapper_name}' returned a non-struct result."
-        )
+        message = f"MATLAB wrapper '{wrapper_name}' returned a non-struct result."
+        LOGGER.warning("WARNING: %s", message)
+        return _failure_payload(error=message)
     return converted
 
 
@@ -177,15 +229,15 @@ def _call_damaged_wrapper(
             nargout=1,
         )
     except Exception as exc:
-        raise MatlabExecutionError(
-            f"MATLAB damaged-case evaluation failed in mode '{mode}': {exc}"
-        ) from exc
+        message = f"MATLAB damaged-case evaluation failed in mode '{mode}': {exc}"
+        LOGGER.warning("WARNING: %s", message)
+        return _failure_payload(error=message)
 
     converted = _struct_to_dict(result)
     if not isinstance(converted, dict):
-        raise MatlabExecutionError(
-            f"Damaged-case MATLAB evaluation in mode '{mode}' returned non-struct output."
-        )
+        message = f"Damaged-case MATLAB evaluation in mode '{mode}' returned non-struct output."
+        LOGGER.warning("WARNING: %s", message)
+        return _failure_payload(error=message)
     return converted
 
 
@@ -402,15 +454,15 @@ def run_dcopf_damaged(
             nargout=1,
         )
     except Exception as exc:
-        raise MatlabExecutionError(
-            f"MATLAB damaged-case DCOPF evaluation failed: {exc}"
-        ) from exc
+        message = f"MATLAB damaged-case DCOPF evaluation failed: {exc}"
+        LOGGER.warning("WARNING: %s", message)
+        return _failure_payload(error=message)
 
     converted = _struct_to_dict(result)
     if not isinstance(converted, dict):
-        raise MatlabExecutionError(
-            "Damaged-case MATLAB DCOPF evaluation returned non-struct output."
-        )
+        message = "Damaged-case MATLAB DCOPF evaluation returned non-struct output."
+        LOGGER.warning("WARNING: %s", message)
+        return _failure_payload(error=message)
     return converted
 
 

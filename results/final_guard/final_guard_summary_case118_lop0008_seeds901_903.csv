@@ -1,0 +1,6 @@
+row_type,seed,truth_only_pf_hat,truth_only_truth_calls,legacy_pf_hat,legacy_truth_calls,legacy_l0_truth_calls,legacy_k_final,legacy_l0_tail_audit_failure_hits,failure_label_pf_hat,failure_label_truth_calls,failure_label_l0_truth_calls,failure_label_k_final,failure_label_l0_tail_audit_failure_hits,legacy_to_failure_truth_call_saving,legacy_to_failure_truth_call_saving_frac,truth_only_to_failure_truth_call_saving,truth_only_to_failure_truth_call_saving_frac,pf_hat_delta_legacy_minus_failure
+per_seed,901,0.06915,1850,0.06825,1269,1000,1000,0,0.06825,532,250,200,0,737,0.580772,1318,0.712432,0.0
+per_seed,902,0.07950,1850,0.08085,1325,1000,1000,0,0.08085,585,250,200,0,740,0.558491,1265,0.683784,0.0
+per_seed,903,0.08985,1850,0.08925,1366,1000,1000,0,0.08925,614,250,200,0,752,0.550512,1236,0.668108,0.0
+mean,all,0.07950,1850.0,0.07945,1320.0,1000.0,1000.0,0.0,0.07945,577.0,250.0,200.0,0.0,743.0,0.563258,1273.0,0.688108,0.0
+std,all,0.01035,0.0,0.01057,48.692915,0.0,0.0,0.0,0.01057,41.581246,0.0,0.0,0.0,7.937254,0.015683,41.581246,0.022476,0.0

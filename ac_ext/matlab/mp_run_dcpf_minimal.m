@@ -20,12 +20,13 @@ if nargin < 2 || isempty(debug)
     debug = false;
 end
 if nargin < 3 || isempty(ac_fail_as_violation)
-    ac_fail_as_violation = false;
+    ac_fail_as_violation = true;
 end
 
 mpc = local_load_case(case_data);
 mpopt = mpoption('verbose', 0, 'out.all', 0);
 
+warning('off', 'MATLAB:rmpath:DirNotFound'); try, opt_path = fileparts(which('opt_model')); osqp_path = fullfile(opt_path, '.github', 'osqp'); if contains(path, osqp_path), rmpath(osqp_path); end, catch, end; warning('on', 'MATLAB:rmpath:DirNotFound');
 [result, success] = rundcpf(mpc, mpopt);
 out = local_finalize_output(result, success, debug, ac_fail_as_violation);
 end

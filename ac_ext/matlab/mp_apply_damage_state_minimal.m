@@ -62,6 +62,10 @@ for bi = 1:numel(outaged_bus_nums)
     mpc_out.gen(gen_on_bus, GEN_STATUS) = 0;
     mpc_out.gen(gen_on_bus, PMAX) = 0;
 end
+
+% 4) Strip metadata fields that can become dimension-inconsistent after
+% damage application and later crash MATPOWER during ext2int/e2i_field.
+mpc_out = local_strip_solver_metadata(mpc_out);
 end
 
 function mpc = local_load_case(case_data)
@@ -95,4 +99,14 @@ if numel(vec) ~= expected_len
         field_name, expected_len, numel(vec));
 end
 vec = double(vec);
+end
+
+function mpc = local_strip_solver_metadata(mpc)
+fields_to_strip = {'bus_name', 'gentype', 'genfuel'};
+for k = 1:numel(fields_to_strip)
+    field_name = fields_to_strip{k};
+    if isfield(mpc, field_name)
+        mpc = rmfield(mpc, field_name);
+    end
+end
 end

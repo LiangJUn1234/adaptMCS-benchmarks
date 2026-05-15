@@ -6,7 +6,7 @@ import copy
 import json
 import math
 import random
-from typing import Any, Dict, List, Mapping, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, Sequence
 
 from .problem import eval_single_damaged_case
 
@@ -86,10 +86,13 @@ class LineOnlyMMHSampler:
             current_state = chains[ci]
             current_score = chain_scores[ci]
 
-            proposed_state, move, prior_ratio, proposal_ratio = self._propose_state(
+            proposed_state, proposal_terms = self._propose_state(
                 current_state,
                 rng,
             )
+            move = str(proposal_terms["move"])
+            prior_ratio = float(proposal_terms["prior_ratio"])
+            q_ratio = float(proposal_terms["q_ratio"])
 
             stats["attempts"] += 1
             stats["move_counts"][move] += 1
@@ -99,7 +102,7 @@ class LineOnlyMMHSampler:
             if proposed_score < threshold:
                 stats["constraint_rejects"] += 1
             else:
-                alpha = min(1.0, prior_ratio * proposal_ratio)
+                alpha = min(1.0, prior_ratio * q_ratio)
                 if rng.random() < alpha:
                     chains[ci] = proposed_state
                     chain_scores[ci] = proposed_score
@@ -142,7 +145,7 @@ class LineOnlyMMHSampler:
         self,
         state: Mapping[str, Any],
         rng: random.Random,
-    ) -> tuple[Dict[str, Any], str, float, float]:
+    ) -> tuple[Dict[str, Any], Dict[str, Any]]:
         proposed = copy.deepcopy(dict(state))
         line_out = list(proposed["line_out"])
 
@@ -166,7 +169,6 @@ class LineOnlyMMHSampler:
             q_fwd = move_probs["add"] * (1.0 / len(closed_idx))
             rev_probs = self._move_probabilities(k + 1, m)
             q_rev = rev_probs["remove"] * (1.0 / (k + 1))
-            proposal_ratio = q_rev / q_fwd
         elif move == "remove":
             j = rng.choice(open_idx)
             line_out[j] = 0
@@ -174,17 +176,29 @@ class LineOnlyMMHSampler:
             q_fwd = move_probs["remove"] * (1.0 / len(open_idx))
             rev_probs = self._move_probabilities(k - 1, m)
             q_rev = rev_probs["add"] * (1.0 / (m - k + 1))
-            proposal_ratio = q_rev / q_fwd
         else:  # swap
             i = rng.choice(open_idx)
             j = rng.choice(closed_idx)
             line_out[i] = 0
             line_out[j] = 1
+            # Swap preserves outage count and the reverse move selects the
+            # same ordered open/closed pair under the same move probability,
+            # so q(x'|x) == q(x|x') and the ratio is exactly 1.
             prior_ratio = 1.0
-            proposal_ratio = 1.0
+            q_fwd = move_probs["swap"] * (1.0 / len(open_idx)) * (1.0 / len(closed_idx))
+            q_rev = q_fwd
 
         proposed["line_out"] = line_out
-        return proposed, move, float(prior_ratio), float(proposal_ratio)
+        proposal_terms = {
+            "move": move,
+            "prior_ratio": float(prior_ratio),
+            "q_forward": float(q_fwd),
+            "q_reverse": float(q_rev),
+            "q_ratio": float(q_rev / q_fwd),
+            "n_out_before": int(k),
+            "n_out_after": int(sum(1 for x in line_out if int(x) == 1)),
+        }
+        return proposed, proposal_terms
 
     @staticmethod
     def _move_probabilities(k: int, m: int) -> Dict[str, float]:

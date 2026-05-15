@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import random
 from dataclasses import dataclass
 from typing import Any, Dict, List, Mapping, Optional, Sequence
@@ -9,7 +10,6 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 from .config import DEFAULTS
 from .events import validate_scalar_payload
 from .exceptions import (
-    InterfaceNotImplementedError,
     InvalidInputError,
     StateSamplingError,
 )
@@ -23,6 +23,84 @@ from .matlab_engine import (
     run_dcpf,
     run_fdxb,
 )
+
+LOGGER = logging.getLogger(__name__)
+
+_ML_MODEL_CACHE: dict = {}
+
+
+def _load_ml_model(case_name: str):
+    """Lazy-load ML surrogate model, cached by case_name."""
+    if case_name in _ML_MODEL_CACHE:
+        return _ML_MODEL_CACHE[case_name]
+    import joblib as _joblib
+    from pathlib import Path as _Path
+
+    model_path = _Path(__file__).parent / "experiments" / "out" / f"ml_surrogate_{case_name}.joblib"
+    if not model_path.exists():
+        raise FileNotFoundError(f"ML surrogate model not found: {model_path}")
+    model = _joblib.load(model_path)
+    _ML_MODEL_CACHE[case_name] = model
+    return model
+
+
+def _eval_ml_surrogate(case_name: str, state: Mapping[str, Any]) -> Dict[str, Any]:
+    """Predict s_any using ML surrogate. No MATLAB needed."""
+    import numpy as _np
+
+    model = _load_ml_model(case_name)
+    features = (
+        [float(v) for v in state["line_out"]]
+        + [float(v) for v in state["bus_out"]]
+        + [float(v) for v in state["gen_scale"]]
+    )
+    x = _np.array([features], dtype=_np.float32)
+    s_any_pred = float(model.predict(x)[0])
+    return {
+        "success": True,
+        "s_line": s_any_pred,
+        "s_volt": s_any_pred,
+        "s_any": s_any_pred,
+    }
+
+
+_ML_CLASSIFIER_CACHE: dict = {}
+
+
+def _load_ml_failure_classifier(case_name: str):
+    """Lazy-load ML failure classifier, cached by case_name."""
+    if case_name in _ML_CLASSIFIER_CACHE:
+        return _ML_CLASSIFIER_CACHE[case_name]
+    import joblib as _joblib
+    from pathlib import Path as _Path
+
+    model_path = _Path(__file__).parent / "experiments" / "out" / f"ml_failure_classifier_{case_name}.joblib"
+    if not model_path.exists():
+        raise FileNotFoundError(f"ML failure classifier not found: {model_path}")
+    model = _joblib.load(model_path)
+    _ML_CLASSIFIER_CACHE[case_name] = model
+    return model
+
+
+def _eval_ml_failure_classifier(case_name: str, state: Mapping[str, Any]) -> Dict[str, Any]:
+    # s_any here is p(ACOPF failure), not a physical violation score.
+    # Used only for ranking/prescreening in Level 0.
+    import numpy as _np
+
+    model = _load_ml_failure_classifier(case_name)
+    features = (
+        [float(v) for v in state["line_out"]]
+        + [float(v) for v in state["bus_out"]]
+        + [float(v) for v in state["gen_scale"]]
+    )
+    x = _np.array([features], dtype=_np.float32)
+    p_fail = float(model.predict_proba(x)[0, 1])
+    return {
+        "success": True,
+        "s_line": p_fail,
+        "s_volt": p_fail,
+        "s_any": p_fail,
+    }
 
 
 @dataclass(frozen=True)
@@ -95,6 +173,24 @@ def _validate_state_payload(state: Mapping[str, Any]) -> None:
             raise InvalidInputError("bus_out length does not match meta['n_bus'].")
         if "n_gen" in meta and len(gen_scale) != int(meta["n_gen"]):
             raise InvalidInputError("gen_scale length does not match meta['n_gen'].")
+
+
+def _failure_payload(*, error: str | None = None) -> Dict[str, Any]:
+    payload: Dict[str, Any] = {
+        "success": False,
+        "s_line": float("inf"),
+        "s_volt": float("inf"),
+        "s_any": float("inf"),
+    }
+    if error is not None:
+        payload["error"] = error
+    return payload
+
+
+def _warn_and_failure(context: str, exc: Exception) -> Dict[str, Any]:
+    message = f"{type(exc).__name__}: {exc}"
+    LOGGER.warning("WARNING: %s failed: %s", context, message)
+    return _failure_payload(error=message)
 
 
 def sample_X(
@@ -203,52 +299,97 @@ def eval_proxy(
     - 'dcpf'
     - 'fdxb'
     - 'dcopf'
+    - 'ml_surrogate'
+    - 'ml_failure'
     """
     if not isinstance(case_name, str) or not case_name.strip():
         raise InvalidInputError("case_name must be a non-empty MATPOWER case name.")
     if not isinstance(config, Mapping):
         raise InvalidInputError("config must be a mapping.")
-    if proxy_mode not in {"dcpf", "fdxb", "dcopf"}:
-        raise InvalidInputError("proxy_mode must be one of {'dcpf', 'fdxb', 'dcopf'}.")
+    if proxy_mode not in {"dcpf", "fdxb", "dcopf", "ml_surrogate", "ml_failure"}:
+        raise InvalidInputError("proxy_mode must be one of {'dcpf', 'fdxb', 'dcopf', 'ml_surrogate', 'ml_failure'}.")
+
+    if proxy_mode == "ml_surrogate":
+        try:
+            return validate_scalar_payload(_eval_ml_surrogate(case_name, state))
+        except Exception as exc:
+            return _warn_and_failure(f"eval_proxy[ml_surrogate]({case_name})", exc)
+
+    if proxy_mode == "ml_failure":
+        try:
+            return validate_scalar_payload(_eval_ml_failure_classifier(case_name, state))
+        except Exception as exc:
+            return _warn_and_failure(f"eval_proxy[ml_failure]({case_name})", exc)
+
+    try:
+        ac_fail_as_violation = bool(config.get("ac_fail_as_violation", True))
+        damaged = apply_state(case_name, state)
+
+        if proxy_mode == "dcpf":
+            return validate_scalar_payload(
+                run_dcpf(
+                    damaged,
+                    debug=debug,
+                    ac_fail_as_violation=ac_fail_as_violation,
+                )
+            )
+        if proxy_mode == "dcopf":
+            return validate_scalar_payload(
+                run_dcopf(
+                    damaged,
+                    debug=debug,
+                    ac_fail_as_violation=ac_fail_as_violation,
+                )
+            )
+
+        return validate_scalar_payload(
+            run_fdxb(
+                damaged,
+                debug=debug,
+                ac_fail_as_violation=ac_fail_as_violation,
+            )
+        )
+    except Exception as exc:
+        return _warn_and_failure(f"eval_proxy[{proxy_mode}]({case_name})", exc)
+
+
+def eval_truth(
+    case_name: str,
+    state: Mapping[str, Any],
+    config: Mapping[str, Any],
+    *,
+    truth_mode: str = "acopf",
+    debug: bool = False,
+) -> Dict[str, Any]:
+    """Evaluate a single damaged case using the selected truth solver."""
+    if not isinstance(case_name, str) or not case_name.strip():
+        raise InvalidInputError("case_name must be a non-empty MATPOWER case name.")
+    if not isinstance(state, Mapping):
+        raise InvalidInputError("state must be a mapping.")
+    if not isinstance(config, Mapping):
+        raise InvalidInputError("config must be a mapping.")
+    if truth_mode not in {"acopf", "acpf", "dcpf"}:
+        raise InvalidInputError("truth_mode must be one of {'acopf', 'acpf', 'dcpf'}.")
 
     ac_fail_as_violation = bool(config.get("ac_fail_as_violation", True))
     damaged = apply_state(case_name, state)
 
-    if proxy_mode == "dcpf":
+    solver = {
+        "acopf": run_acopf,
+        "acpf": run_acpf,
+        "dcpf": run_dcpf,
+    }[truth_mode]
+
+    try:
         return validate_scalar_payload(
-            run_dcpf(
+            solver(
                 damaged,
                 debug=debug,
                 ac_fail_as_violation=ac_fail_as_violation,
             )
         )
-    if proxy_mode == "dcopf":
-        return validate_scalar_payload(
-            run_dcopf(
-                damaged,
-                debug=debug,
-                ac_fail_as_violation=ac_fail_as_violation,
-            )
-        )
-
-    return validate_scalar_payload(
-        run_fdxb(
-            damaged,
-            debug=debug,
-            ac_fail_as_violation=ac_fail_as_violation,
-        )
-    )
-
-
-def eval_truth(case_data: Mapping[str, Any], config: Mapping[str, Any]) -> Dict[str, Any]:
-    """Evaluate truth model for scenario-based workflow (out of scope)."""
-    if not isinstance(case_data, Mapping):
-        raise InvalidInputError("eval_truth requires case_data to be a mapping.")
-    if not isinstance(config, Mapping):
-        raise InvalidInputError("eval_truth requires config to be a mapping.")
-    raise InterfaceNotImplementedError(
-        "eval_truth for random scenarios is not implemented in this phase."
-    )
+    except Exception as exc:
+        return _warn_and_failure(f"eval_truth[{truth_mode}]({case_name})", exc)
 
 
 def eval_single_case(
