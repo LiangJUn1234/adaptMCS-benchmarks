@@ -38,3 +38,7 @@ ac_ext/experiments/out/logs/*refreshed*
 !ac_ext/experiments/out/ml_training_data_case118.csv
 !ac_ext/experiments/out/ml_training_data_with_dcopf_case118.csv
 !ac_ext/experiments/out/dcopf_flow_features_case118.npz
+
+# Duplicate final summaries are tracked under results/final_guard/.
+ac_ext/experiments/out/final_guard_summary_case118_lop0008_seeds901_903.csv
+ac_ext/experiments/out/final_guard_summary_case118_lop0008_seeds901_903.md
