@@ -13,3 +13,9 @@ Notes:
 - The source `report/` directory remains the primary handoff workspace.
 - This snapshot intentionally excludes unrelated presentation design binaries
   and other nonessential outer-project artifacts.
+
+Recommended first files for migration/handoff readiness:
+- `00_overall/OVERALL_SUMMARY_README.md`
+- `00_overall/MIGRATION_AND_REPRO_CHECKLIST.md`
+- `00_overall/ARTIFACT_REGISTRY_AND_RETENTION_PLAN.md`
+- `00_overall/QUICKSTART_RESTORE_OR_CONTINUE.md`
