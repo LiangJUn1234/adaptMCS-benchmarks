@@ -1,0 +1,35 @@
+{
+  "stage": "A2.2a",
+  "eval_seeds": [
+    300
+  ],
+  "train_seeds": [
+    7,
+    42,
+    100,
+    200
+  ],
+  "selection_rule": [
+    "pass_all_lops=True",
+    "minimum mean_l0_truth_calls",
+    "minimum max_K_final",
+    "smaller K_initial",
+    "simpler score: raw < best_trained_physics < other trained"
+  ],
+  "best": {
+    "score_name": "raw_success_fail",
+    "method_family": "raw_success_fail",
+    "score_priority": 0,
+    "K_initial": 200,
+    "tail_audit": 25,
+    "expand_factor": 1.25,
+    "max_expand_rounds": 3,
+    "n_lops": 6,
+    "pass_all_lops": true,
+    "mean_l0_truth_calls": 225.0,
+    "max_K_final": 200,
+    "max_tail_audit_failure_hits": 0,
+    "mean_top100_recall": 0.7983897196733317,
+    "mean_top200_recall": 1.0
+  }
+}

@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import copy
+import csv
+import hashlib
 import json
 import logging
 import math
 import random
 import statistics
 import time
+from pathlib import Path
 from typing import Any, Dict, List, Mapping, Sequence
 
 from .config import DEFAULTS
@@ -64,6 +67,12 @@ class SuSController:
         )
         self.da_debug_print = bool(self.config.get("da_debug_print", False))
         self.da_debug_max_logs = int(self.config.get("da_debug_max_logs", 20))
+        self.da_trace_enabled = bool(self.config.get("da_trace_enabled", False))
+        self.da_trace_output_path = str(self.config.get("da_trace_output_path", "") or "")
+        self.da_trace_run_id = str(self.config.get("da_trace_run_id", "") or "")
+        self.da_trace_arm_name = str(self.config.get("benchmark_arm_name", "") or "")
+        self.benchmark_seed = int(self.config.get("benchmark_seed", 0))
+        self._da_trace_records: List[Dict[str, Any]] = []
         self._last_sampler_stats: Dict[str, Any] | None = None
         self._truth_engine_time = 0.0
         self.stats: Dict[str, Any] = {}
@@ -107,12 +116,14 @@ class SuSController:
         run_started = time.perf_counter()
         self._truth_engine_time = 0.0
         self._last_sampler_stats = None
+        self._da_trace_records = []
         self.stats = {}
 
         def finalize(output: Dict[str, Any]) -> Dict[str, Any]:
             total_wall_clock_time = time.perf_counter() - run_started
             output["total_wall_clock_time"] = float(total_wall_clock_time)
             output["truth_engine_time"] = float(self._truth_engine_time)
+            da_trace_rows = self._write_da_trace_if_enabled()
             l0_log = {}
             level_logs = list(output.get("level_logs", []))
             if level_logs:
@@ -172,6 +183,9 @@ class SuSController:
                 "l0_proxy_inf_in_topk_count": l0_log.get("l0_proxy_inf_in_topk_count"),
                 "l0_proxy_fail_in_audit_count": l0_log.get("l0_proxy_fail_in_audit_count"),
                 "l0_proxy_inf_in_audit_count": l0_log.get("l0_proxy_inf_in_audit_count"),
+                "da_trace_enabled": bool(self.da_trace_enabled),
+                "da_trace_output_path": self.da_trace_output_path or None,
+                "da_trace_rows": da_trace_rows,
             }
             return output
 
@@ -347,6 +361,7 @@ class SuSController:
                 )
             else:
                 states, scores, evolve_meta = self._evolve_next_level_delayed_acceptance(
+                    level=level + 1,
                     seed_states=seed_states,
                     seed_scores=seed_scores,
                     threshold=threshold,
@@ -1004,7 +1019,11 @@ class SuSController:
         while len(next_states) < n_samples:
             ci = chain_idx % len(chains)
             current_state = chains[ci]
+            current_state_before = copy.deepcopy(current_state)
             current_score = chain_scores[ci]
+            current_score_before = float(current_score)
+            current_truth_failed = self._truth_failed_from_score(current_score)
+            current_truth_failed_before = bool(current_truth_failed)
 
             proposed_state, proposal_terms = sampler._propose_state(
                 current_state,
@@ -1075,6 +1094,7 @@ class SuSController:
     def _evolve_next_level_delayed_acceptance(
         self,
         *,
+        level: int,
         seed_states: Sequence[Mapping[str, Any]],
         seed_scores: Sequence[float],
         threshold: float,
@@ -1128,7 +1148,28 @@ class SuSController:
         while len(next_states) < n_samples:
             ci = chain_idx % len(chains)
             current_state = chains[ci]
-            current_score = chain_scores[ci]
+            current_state_before = copy.deepcopy(current_state)
+            current_score_before = float(chain_scores[ci])
+            current_truth_failed_before = self._truth_failed_from_score(current_score_before)
+            current_score = current_score_before
+
+            proxy_score: float | None = None
+            proxy_payload: Dict[str, Any] | None = None
+            proxy_success_proposal: bool | None = None
+            forward_proxy_wall_time = 0.0
+
+            truth_payload: Dict[str, Any] | None = None
+            truth_score: float | None = None
+            truth_wall_time = 0.0
+            truth_evaluated = False
+
+            reverse_proxy_score: float | None = None
+            reverse_proxy_success: bool | None = None
+            reverse_proxy_reject = False
+            reverse_proxy_wall_time = 0.0
+
+            stage1_accept = False
+            final_accept = False
 
             proposed_state, proposal_terms = sampler._propose_state(
                 current_state,
@@ -1143,6 +1184,7 @@ class SuSController:
             stats["attempts"] += 1
             stats["move_counts"][move] += 1
 
+            proxy_started = time.perf_counter()
             proxy_payload = eval_proxy(
                 self.case_name,
                 proposed_state,
@@ -1150,8 +1192,11 @@ class SuSController:
                 proxy_mode=self.proxy_mode,
                 debug=False,
             )
+            forward_proxy_wall_time = time.perf_counter() - proxy_started
             proxy_score = float(proxy_payload["s_any"])
+            proxy_success_proposal = bool(proxy_payload.get("success", False))
             n_proxy_calls += 1
+            reverse_proxy_pass = True
 
             if proxy_score < threshold:
                 stage1_rejects += 1
@@ -1165,8 +1210,13 @@ class SuSController:
                     else:
                         stage1_reject_shadow_truth_fail_count += 1
             else:
+                stage1_accept = True
                 stage1_pass += 1
-                truth_score = self._timed_truth_score(proposed_state)
+                truth_started = time.perf_counter()
+                truth_payload = self._timed_truth_payload(proposed_state)
+                truth_wall_time = time.perf_counter() - truth_started
+                truth_score = float(truth_payload["s_any"])
+                truth_evaluated = True
                 n_truth_calls += 1
 
                 if truth_score < threshold:
@@ -1174,10 +1224,9 @@ class SuSController:
                     stats["stage2_gate_rejects"] += 1
                 else:
                     alpha_raw = prior_ratio * q_ratio
-                    reverse_proxy_score: float | None = None
-                    reverse_proxy_pass = True
 
                     if self.enable_hastings_correction:
+                        reverse_started = time.perf_counter()
                         reverse_proxy_payload = eval_proxy(
                             self.case_name,
                             current_state,
@@ -1185,7 +1234,9 @@ class SuSController:
                             proxy_mode=self.proxy_mode,
                             debug=False,
                         )
+                        reverse_proxy_wall_time = time.perf_counter() - reverse_started
                         reverse_proxy_score = float(reverse_proxy_payload["s_any"])
+                        reverse_proxy_success = bool(reverse_proxy_payload.get("success", False))
                         reverse_proxy_pass = reverse_proxy_score >= threshold
                         n_proxy_calls += 1
 
@@ -1225,6 +1276,7 @@ class SuSController:
 
                     if self.enable_hastings_correction and not reverse_proxy_pass:
                         stats["reverse_proxy_rejects"] += 1
+                        reverse_proxy_reject = True
 
                     stage2_pass += 1
                     if rng.random() < alpha:
@@ -1234,8 +1286,56 @@ class SuSController:
                         current_score = truth_score
                         stats["accepted"] += 1
                         stats["accepted_move_counts"][move] += 1
+                        final_accept = True
                     else:
                         stats["mh_rejects"] += 1
+
+            self._record_da_trace(
+                {
+                    "run_id": self.da_trace_run_id or None,
+                    "arm_name": self.da_trace_arm_name or None,
+                    "seed": int(self.benchmark_seed),
+                    "run_seed": int(self.benchmark_seed),
+                    "rng_seed_internal": seed,
+                    "level": int(level),
+                    "proposal_index": int(stats["attempts"]),
+                    "current_sample_id": None,
+                    "proposal_sample_id": None,
+                    "proxy_mode": self.proxy_mode,
+                    "l0_guard_mode": self.level0_guard_mode,
+                    "proxy_score_current": None,
+                    "proxy_score_proposal": proxy_score,
+                    "reverse_proxy_score": reverse_proxy_score,
+                    "reverse_proxy_success": reverse_proxy_success,
+                    "truth_score_current": current_score_before,
+                    "truth_score_proposal": truth_score,
+                    "truth_success_current": not current_truth_failed_before,
+                    "truth_success_proposal": None
+                    if truth_score is None
+                    else (not self._truth_failed_from_score(truth_score)),
+                    "truth_failed_current": current_truth_failed_before,
+                    "truth_failed_proposal": None
+                    if truth_score is None
+                    else self._truth_failed_from_score(truth_score),
+                    "stage1_accept": bool(stage1_accept),
+                    "final_accept": bool(final_accept),
+                    "reverse_proxy_reject": bool(reverse_proxy_reject),
+                    "truth_evaluated": bool(truth_evaluated),
+                    "proxy_evaluated": True,
+                    "wall_time_proxy": float(forward_proxy_wall_time + reverse_proxy_wall_time),
+                    "wall_time_truth": float(truth_wall_time),
+                    "current_damage_state_hash": self._state_hash(current_state_before),
+                    "damage_state_hash": self._state_hash(proposed_state),
+                    "n_line_out_current": self._line_out_count(current_state_before),
+                    "n_line_out": self._line_out_count(proposed_state),
+                    "dcopf_success": proxy_success_proposal,
+                    "l0_score": None if proxy_payload is None else proxy_payload.get("l0_score"),
+                    "da_score": None if proxy_payload is None else proxy_payload.get("da_score"),
+                    "flow_score": None if proxy_payload is None else proxy_payload.get("flow_score"),
+                    "proxy_success_current": None,
+                    "proxy_success_proposal": proxy_success_proposal,
+                }
+            )
 
             next_states.append(copy.deepcopy(current_state))
             next_scores.append(float(current_score))
@@ -1299,6 +1399,44 @@ class SuSController:
                 for s in states
             }
         )
+
+    @staticmethod
+    def _state_hash(state: Mapping[str, Any]) -> str:
+        payload = json.dumps(dict(state), sort_keys=True, separators=(",", ":"))
+        return hashlib.sha1(payload.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _line_out_count(state: Mapping[str, Any]) -> int:
+        return int(sum(1 for v in state.get("line_out", []) if int(v) == 1))
+
+    @staticmethod
+    def _truth_failed_from_score(score: float) -> bool:
+        return math.isinf(float(score)) and float(score) > 0
+
+    def _record_da_trace(self, row: Mapping[str, Any]) -> None:
+        if not self.da_trace_enabled:
+            return
+        self._da_trace_records.append(dict(row))
+
+    def _write_da_trace_if_enabled(self) -> int | None:
+        if not self.da_trace_enabled:
+            return None
+        if not self.da_trace_output_path:
+            return len(self._da_trace_records)
+        path = Path(self.da_trace_output_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fieldnames: List[str] = []
+        seen: set[str] = set()
+        for row in self._da_trace_records:
+            for key in row.keys():
+                if key not in seen:
+                    seen.add(key)
+                    fieldnames.append(key)
+        with path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=fieldnames, delimiter="\t")
+            writer.writeheader()
+            writer.writerows(self._da_trace_records)
+        return len(self._da_trace_records)
 
     def _timed_truth_score(self, state: Mapping[str, Any]) -> float:
         payload = self._timed_truth_payload(state)

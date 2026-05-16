@@ -1,52 +1,116 @@
-# Proxy Selection Recommendation
+\# Proxy Selection Recommendation
 
-## Current Status
-- DCPF and FDXB are both fully operational in the unified Phase-5 proxy evaluation pipeline.
-- Both proxies now support damaged-case evaluation and return the same minimal scalar schema as truth:
-  - success
-  - s_line
-  - s_volt
-  - s_any
 
-## Diagnostics Basis
-Diagnostics were run under the following setup:
-- case: case14
-- truth: acopf
-- N: 200
-- seed: 1
-- line_outage_prob = 0.01
-- bus_outage_prob = 0.0
 
-### DCPF summary
-- Pearson(s_any): ~0
-- Spearman(s_any): null
-- top-10% Jaccard: 0.2121
-- overlap: 7 / 20
+\## Current recommendation
 
-### FDXB summary
-- Pearson(s_any): 0.1006
-- Spearman(s_any): 0.1209
-- top-10% Jaccard: 0.2121
-- overlap: 7 / 20
+\*\*Use FDXB as the default tested Stage-1 proxy candidate.\*\*
 
-## Default Stage-1 Proxy Decision
-**Recommendation: use FDXB as the provisional default Stage-1 proxy.**
 
-## Rationale
-1. FDXB preserves weak but nonzero correlation with truth, while DCPF is effectively constant over most finite samples.
-2. FDXB yields a defined Spearman rank correlation, whereas DCPF does not provide meaningful rank resolution in the current setup.
-3. Although both proxies have the same top-10% overlap under this case, FDXB carries more usable ordering information for screening.
 
-## Why DCPF is not the Default
-- DCPF is still useful as a baseline/debug proxy.
-- However, under the current case14/acopf/light-damage configuration, its proxy scores collapse to a near-single value and therefore provide almost no ranking signal.
-- That makes it a poor default choice for Stage-1 screening in later DA-style workflows.
+\*\*Do not use DCPF as the default Stage-1 proxy for ACOPF-based workflows.\*\*
 
-## Limitations
-- The current recommendation is based on case14, which is a small system and not ideal for strong line-limit discrimination.
-- Both proxies are weak under this setup, so the decision should be treated as provisional.
-- Before Phase 6 is finalized, the same diagnostics should be repeated on at least one more realistic case (preferably a PGLib-style case with meaningful branch limits and richer operating behavior).
 
-## Phase-6 Implication
-- If development proceeds immediately, FDXB should be wired in as the default Stage-1 proxy.
-- DCPF should remain available for comparison, debugging, and sanity checks.
+
+\## Why this recommendation changed
+
+The initial `case14` diagnostics only supported a weak provisional preference for FDXB over DCPF. Later follow-up runs on `case30` and `pglib\_opf\_case57\_ieee` clarified the situation:
+
+
+
+\- FDXB is consistently stronger than DCPF as a ranking-oriented PF-family proxy.
+
+\- DCPF can still detect some extreme failures, but it is too weak and unstable to remain the ACOPF default proxy.
+
+\- The main issue is not implementation failure; it is \*\*truth mismatch\*\* between PF-family proxies and optimization-based ACOPF truth.
+
+
+
+\## Evidence summary
+
+
+
+\### Under `truth = acopf`
+
+\- DCPF is weak on `case14`.
+
+\- DCPF remains weak on PGLib-57 and even loses strong top-risk overlap there.
+
+\- FDXB is better than DCPF, but still behaves as a \*\*coarse screening proxy\*\*, not a high-fidelity ACOPF surrogate.
+
+
+
+\### Under `truth = acpf`
+
+\- FDXB behaves almost perfectly.
+
+\- DCPF improves, especially on extreme-state overlap, but still does not match FDXB.
+
+
+
+\## Operational interpretation
+
+
+
+\### FDXB
+
+Use FDXB as:
+
+\- the main tested Stage-1 proxy candidate,
+
+\- the default proxy for future delayed-acceptance experiments,
+
+\- a strong proxy when the truth target is ACPF,
+
+\- a coarse screening proxy when the truth target is ACOPF.
+
+
+
+\### DCPF
+
+Keep DCPF only as:
+
+\- baseline,
+
+\- debug comparator,
+
+\- occasional extreme-failure detector,
+
+\- sanity-check reference.
+
+
+
+Do \*\*not\*\* treat DCPF as the preferred ACOPF-facing screening model.
+
+
+
+\## What this means for the next phase
+
+The next controller should be designed under the assumption that:
+
+\- the proxy may be weak against ACOPF,
+
+\- the proxy still has value as a cheap filter,
+
+\- correctness must still come from the truth layer.
+
+
+
+In practice this means:
+
+\- build an evaluator-agnostic SuS controller,
+
+\- support truth-only and proxy-only modes first,
+
+\- add delayed-acceptance logic after the controller and discrete MCMC kernel are stable,
+
+\- do not hard-code assumptions that the proxy is strongly rank-consistent with ACOPF.
+
+
+
+\## Final recommendation sentence
+
+\*\*FDXB should be treated as the default tested Stage-1 proxy candidate; DCPF should be retained only as baseline/debug support; and future controller design should assume proxy weakness against ACOPF rather than rely on near-surrogate behavior.\*\*
+
+
+

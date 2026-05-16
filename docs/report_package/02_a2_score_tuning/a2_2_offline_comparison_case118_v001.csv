@@ -1,0 +1,3 @@
+section,best_score,K_initial,tail_audit,expand_factor,pass_all_lops,mean_l0_truth_calls,max_K_final,max_tail_audit_failure_hits,mean_top100_recall,mean_top200_recall
+A2.2a,raw_success_fail,200,25,1.25,True,225.0,200,0,0.7983897196733317,1.0
+A2.2b,raw_success_fail,200,25,1.5,True,225.0,200,0,0.7983897196733317,1.0

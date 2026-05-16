@@ -1,0 +1,263 @@
+{
+  "stage": "da_trace_analysis_v001",
+  "inputs": {
+    "trace_tsv": "ac_ext/experiments/out/da_traces/da_trace_case118_N1000_seed901_dcopf_failure_label/case118_corrected_da_dcopf_seed901_N1000_lop0008.tsv",
+    "run_csv": "ac_ext/experiments/out/da_trace_case118_N1000_seed901_dcopf_failure_label.csv"
+  },
+  "run_csv_row": {
+    "arm_name": "corrected_da_dcopf",
+    "seed": "901",
+    "N": "1000",
+    "line_outage_prob": "0.008",
+    "evaluator_mode": "delayed_acceptance",
+    "truth_mode": "acopf",
+    "proxy_mode": "dcopf",
+    "l0_proxy_mode": "dcopf",
+    "enable_hastings_correction": "True",
+    "status": "ok",
+    "error": "",
+    "termination_reason": "threshold_reached_infinite",
+    "n_levels": "2",
+    "pf_hat": "0.06825",
+    "acceptance_rate": "0.22588235294117648",
+    "level_acceptance_rates_json": "[{\"acceptance_rate\": 0.22588235294117648, \"accepted\": 192, \"attempts\": 850, \"level\": 1}]",
+    "reverse_proxy_rejects": "25",
+    "truth_calls": "532",
+    "proxy_calls": "2132",
+    "total_wall_clock_time": "90.61022761599452",
+    "truth_engine_time": "22.078414376970613",
+    "l0_prescreen_enabled": "True",
+    "l0_truth_calls": "250",
+    "l0_proxy_calls": "1000",
+    "l0_guard_active": "True",
+    "l0_guard_mode": "failure_label",
+    "l0_guard_passed": "True",
+    "l0_fallback_triggered": "False",
+    "l0_fallback_reason": "none",
+    "l0_tail_audit_count": "50",
+    "l0_tail_audit_failure_hits": "0",
+    "l0_rank_inversion_hits": "0",
+    "l0_failure_recall_inside_final_k": "not_available",
+    "l0_failure_recall_inside_final_k_observed": "1.0",
+    "l0_failure_label_rank_inversion_hits": "0",
+    "l0_failure_label_guard_passed": "True",
+    "l0_failure_label_fallback_reason": "none",
+    "l0_prescreen_K_initial": "200",
+    "l0_prescreen_K_final": "200",
+    "da_trace_enabled": "True",
+    "da_trace_output_path": "/home/lhftr/code/power-rare-events/adaptMCS-benchmarks/ac_ext/experiments/out/da_traces/da_trace_case118_N1000_seed901_dcopf_failure_label/case118_corrected_da_dcopf_seed901_N1000_lop0008.tsv",
+    "da_trace_rows": "850"
+  },
+  "consistency_checks": {
+    "trace_tsv_exists": true,
+    "run_csv_exists": true,
+    "tsv_rows_equals_da_trace_rows": true,
+    "seed_column_matches_csv_seed": true,
+    "run_seed_column_matches_csv_seed": true,
+    "csv_status_ok": true,
+    "level_attempts_match_level_acceptance_rates_json": true,
+    "truth_calls_decomposition_matches": true
+  },
+  "overall": {
+    "total_proposals": 850,
+    "stage1_accept_count": 282,
+    "stage1_accept_rate": 0.33176470588235296,
+    "truth_evaluated_count": 282,
+    "truth_evaluated_rate": 0.33176470588235296,
+    "final_accept_count": 192,
+    "final_accept_rate": 0.22588235294117648,
+    "reverse_proxy_reject_count": 25,
+    "reverse_proxy_reject_rate": 0.029411764705882353
+  },
+  "by_level": [
+    {
+      "level": 1,
+      "proposals": 850,
+      "stage1_accept_count": 282,
+      "stage1_accept_rate": 0.33176470588235296,
+      "truth_evaluated_count": 282,
+      "truth_evaluated_rate": 0.33176470588235296,
+      "final_accept_count": 192,
+      "final_accept_rate": 0.22588235294117648,
+      "reverse_proxy_reject_count": 25,
+      "reverse_proxy_reject_rate": 0.029411764705882353
+    }
+  ],
+  "truth_evaluated_subset": {
+    "n": 282,
+    "acopf_failed_count": 282,
+    "acopf_safe_count": 0,
+    "failed_fraction": 1.0,
+    "final_accept_count": 192,
+    "final_reject_count": 90,
+    "reverse_proxy_reject_count": 25
+  },
+  "non_truth_evaluated_subset": {
+    "n": 568,
+    "proxy_score_distribution": {
+      "missing": 0,
+      "finite": 568,
+      "+inf": 0,
+      "-inf": 0,
+      "min": -0.06000000000000005,
+      "q25": -0.06000000000000005,
+      "q50": -0.06000000000000005,
+      "q75": -0.06000000000000005,
+      "q90": -0.06000000000000005,
+      "q95": -0.06000000000000005,
+      "q99": -0.06000000000000005,
+      "max": -0.06000000000000005
+    },
+    "dcopf_success_true_count": 568,
+    "dcopf_success_false_count": 0,
+    "dcopf_success_none_count": 0
+  },
+  "score_distributions": {
+    "proxy_score_proposal": {
+      "missing": 0,
+      "finite": 568,
+      "+inf": 282,
+      "-inf": 0,
+      "min": -0.06000000000000005,
+      "q25": -0.06000000000000005,
+      "q50": -0.06000000000000005,
+      "q75": -0.06000000000000005,
+      "q90": -0.06000000000000005,
+      "q95": -0.06000000000000005,
+      "q99": -0.06000000000000005,
+      "max": -0.06000000000000005
+    },
+    "truth_score_proposal": {
+      "missing": 568,
+      "finite": 0,
+      "+inf": 282,
+      "-inf": 0,
+      "min": null,
+      "q25": null,
+      "q50": null,
+      "q75": null,
+      "q90": null,
+      "q95": null,
+      "q99": null,
+      "max": null
+    },
+    "reverse_proxy_score": {
+      "missing": 568,
+      "finite": 25,
+      "+inf": 257,
+      "-inf": 0,
+      "min": -0.06000000000000005,
+      "q25": -0.06000000000000005,
+      "q50": -0.06000000000000005,
+      "q75": -0.06000000000000005,
+      "q90": -0.06000000000000005,
+      "q95": -0.06000000000000005,
+      "q99": -0.06000000000000005,
+      "max": -0.06000000000000005
+    },
+    "truth_score_current": {
+      "missing": 0,
+      "finite": 460,
+      "+inf": 390,
+      "-inf": 0,
+      "min": -2.0556628399504007e-08,
+      "q25": -2.0556628399504007e-08,
+      "q50": -1.9044116394972832e-08,
+      "q75": -1.729247101067699e-08,
+      "q90": -1.2236550661626211e-08,
+      "q95": -9.744608009398803e-09,
+      "q99": -8.447316401927196e-09,
+      "max": -8.447316401927196e-09
+    }
+  },
+  "categorical_counts": {
+    "dcopf_success": {
+      "true": 568,
+      "false": 282,
+      "none": 0
+    },
+    "proxy_success_proposal": {
+      "true": 568,
+      "false": 282,
+      "none": 0
+    },
+    "truth_failed_proposal": {
+      "true": 282,
+      "false": 0,
+      "none": 568
+    },
+    "stage1_accept": {
+      "true": 282,
+      "false": 568
+    },
+    "final_accept": {
+      "true": 192,
+      "false": 658
+    },
+    "reverse_proxy_reject": {
+      "true": 25,
+      "false": 825
+    },
+    "n_line_out": {
+      "min": 0,
+      "max": 10,
+      "mean": 1.9870588235294118
+    }
+  },
+  "relationship_tables": {
+    "stage1_accept_vs_truth_evaluated_vs_final_accept": [
+      {
+        "stage1_accept": false,
+        "truth_evaluated": false,
+        "final_accept": false,
+        "count": 568
+      },
+      {
+        "stage1_accept": true,
+        "truth_evaluated": true,
+        "final_accept": false,
+        "count": 90
+      },
+      {
+        "stage1_accept": true,
+        "truth_evaluated": true,
+        "final_accept": true,
+        "count": 192
+      }
+    ],
+    "reverse_proxy_reject_vs_final_accept": [
+      {
+        "reverse_proxy_reject": false,
+        "final_accept": false,
+        "count": 633
+      },
+      {
+        "reverse_proxy_reject": false,
+        "final_accept": true,
+        "count": 192
+      },
+      {
+        "reverse_proxy_reject": true,
+        "final_accept": false,
+        "count": 25
+      }
+    ],
+    "truth_failed_proposal_vs_final_accept": [
+      {
+        "truth_failed_proposal": null,
+        "final_accept": false,
+        "count": 568
+      },
+      {
+        "truth_failed_proposal": true,
+        "final_accept": false,
+        "count": 90
+      },
+      {
+        "truth_failed_proposal": true,
+        "final_accept": true,
+        "count": 192
+      }
+    ]
+  }
+}

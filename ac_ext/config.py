@@ -23,6 +23,10 @@ class ACConfig:
     line_outage_prob: float = 0.01
     bus_outage_prob: float = 0.002
     level0_guard_mode: str = "legacy_truth_score"
+    da_trace_enabled: bool = False
+    da_trace_output_path: str = ""
+    da_trace_run_id: str = ""
+    benchmark_seed: int = 0
     gen_derate_state_values: tuple[float, ...] = (1.0, 0.8, 0.5, 0.0)
     gen_derate_state_probs: tuple[float, ...] = (0.94, 0.04, 0.015, 0.005)
 

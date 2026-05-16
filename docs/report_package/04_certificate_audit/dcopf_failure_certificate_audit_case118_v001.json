@@ -1,0 +1,144 @@
+{
+  "stage": "certificate_audit_v001",
+  "inputs": {
+    "csv": "ac_ext/experiments/out/ml_training_data_with_dcopf_case118.csv",
+    "npz": "ac_ext/experiments/out/dcopf_flow_features_case118.npz"
+  },
+  "npz_cross_checks": {
+    "sample_id_exact_match": true,
+    "seed_exact_match": true,
+    "line_outage_prob_allclose": true,
+    "dcopf_success_exact_match": true,
+    "acopf_fail_label_exact_match": true,
+    "flow_valid_all_true": true,
+    "n_csv_rows": 30000,
+    "n_npz_rows": 30000
+  },
+  "overall": {
+    "n_total": 30000,
+    "acopf_failed_count": 3790,
+    "dcopf_failed_count": 3770,
+    "dcopf_success_count": 26230,
+    "true_certificate_count": 3763,
+    "false_certificate_count": 7,
+    "missed_acopf_failure_count": 27,
+    "safe_success_count": 26203,
+    "P_acopf_fail_given_dcopf_fail": 0.9981432360742706,
+    "P_dcopf_fail_given_acopf_fail": 0.9928759894459103,
+    "false_certificate_rate": 0.001856763925729443,
+    "missed_failure_rate": 0.00712401055408971,
+    "P_acopf_fail_given_dcopf_fail_wilson_lo": 0.9961720006848656,
+    "P_acopf_fail_given_dcopf_fail_wilson_hi": 0.9991002969123626,
+    "false_certificate_rate_wilson_lo": 0.0008997030876373158,
+    "false_certificate_rate_wilson_hi": 0.003827999315134437
+  },
+  "false_certificate_regimes": [
+    {
+      "seed": 7,
+      "line_outage_prob": 0.005,
+      "false_certificate_count": 1,
+      "dcopf_failed_count": 53,
+      "false_certificate_rate": 0.018867924528301886
+    },
+    {
+      "seed": 7,
+      "line_outage_prob": 0.008,
+      "false_certificate_count": 1,
+      "dcopf_failed_count": 82,
+      "false_certificate_rate": 0.012195121951219513
+    },
+    {
+      "seed": 7,
+      "line_outage_prob": 0.011,
+      "false_certificate_count": 1,
+      "dcopf_failed_count": 117,
+      "false_certificate_rate": 0.008547008547008548
+    },
+    {
+      "seed": 7,
+      "line_outage_prob": 0.014,
+      "false_certificate_count": 1,
+      "dcopf_failed_count": 154,
+      "false_certificate_rate": 0.006493506493506494
+    },
+    {
+      "seed": 200,
+      "line_outage_prob": 0.014,
+      "false_certificate_count": 1,
+      "dcopf_failed_count": 139,
+      "false_certificate_rate": 0.007194244604316547
+    },
+    {
+      "seed": 200,
+      "line_outage_prob": 0.02,
+      "false_certificate_count": 2,
+      "dcopf_failed_count": 209,
+      "false_certificate_rate": 0.009569377990430622
+    }
+  ],
+  "false_certificate_examples_head": [
+    {
+      "sample_id": 951,
+      "seed": 7,
+      "line_outage_prob": 0.005,
+      "acopf_success": true,
+      "acopf_s_any": -1.3960298916870784e-08,
+      "dcopf_success": false,
+      "dcopf_s_any": Infinity
+    },
+    {
+      "sample_id": 1951,
+      "seed": 7,
+      "line_outage_prob": 0.008,
+      "acopf_success": true,
+      "acopf_s_any": -1.3960298916870784e-08,
+      "dcopf_success": false,
+      "dcopf_s_any": Infinity
+    },
+    {
+      "sample_id": 2951,
+      "seed": 7,
+      "line_outage_prob": 0.011,
+      "acopf_success": true,
+      "acopf_s_any": -1.3960298916870784e-08,
+      "dcopf_success": false,
+      "dcopf_s_any": Infinity
+    },
+    {
+      "sample_id": 3951,
+      "seed": 7,
+      "line_outage_prob": 0.014,
+      "acopf_success": true,
+      "acopf_s_any": -1.3960298916870784e-08,
+      "dcopf_success": false,
+      "dcopf_s_any": Infinity
+    },
+    {
+      "sample_id": 21559,
+      "seed": 200,
+      "line_outage_prob": 0.014,
+      "acopf_success": true,
+      "acopf_s_any": -1.6388047585635945e-08,
+      "dcopf_success": false,
+      "dcopf_s_any": Infinity
+    },
+    {
+      "sample_id": 23153,
+      "seed": 200,
+      "line_outage_prob": 0.02,
+      "acopf_success": true,
+      "acopf_s_any": -2.7598111573823303e-08,
+      "dcopf_success": false,
+      "dcopf_s_any": Infinity
+    },
+    {
+      "sample_id": 23827,
+      "seed": 200,
+      "line_outage_prob": 0.02,
+      "acopf_success": true,
+      "acopf_s_any": -1.022234608072381e-08,
+      "dcopf_success": false,
+      "dcopf_s_any": Infinity
+    }
+  ]
+}

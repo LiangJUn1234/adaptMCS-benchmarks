@@ -36,6 +36,8 @@ def _parse_args() -> argparse.Namespace:
         default="legacy_truth_score",
     )
     parser.add_argument("--arms", nargs="+", default=None)
+    parser.add_argument("--da-trace-enabled", action="store_true")
+    parser.add_argument("--da-trace-dir", default=None)
     parser.add_argument("--arm-timeout-sec", type=int, default=3600)
     parser.add_argument(
         "--output",
@@ -161,16 +163,38 @@ FIELDNAMES = [
     "l0_failure_label_fallback_reason",
     "l0_prescreen_K_initial",
     "l0_prescreen_K_final",
+    "da_trace_enabled",
+    "da_trace_output_path",
+    "da_trace_rows",
 ]
 
 
-def _build_config(args: argparse.Namespace, arm: Dict[str, Any]) -> Dict[str, Any]:
+def _build_config(
+    args: argparse.Namespace,
+    arm: Dict[str, Any],
+    *,
+    output_path: Path,
+    seed: int,
+) -> Dict[str, Any]:
     cfg = ACConfig(
         N=int(args.N),
         p0=float(args.sus_p0),
         line_outage_prob=float(args.line_outage_prob),
         bus_outage_prob=float(args.bus_outage_prob),
     ).to_dict()
+    trace_path = ""
+    trace_run_id = ""
+    if args.da_trace_enabled:
+        if args.da_trace_dir:
+            trace_dir = Path(args.da_trace_dir).resolve()
+        else:
+            trace_dir = (output_path.parent / "da_traces" / output_path.stem).resolve()
+        trace_dir.mkdir(parents=True, exist_ok=True)
+        trace_run_id = (
+            f"{args.case}_{arm['arm_name']}_seed{int(seed)}_N{int(args.N)}"
+            f"_lop{str(args.line_outage_prob).replace('.', '')}"
+        )
+        trace_path = str((trace_dir / f"{trace_run_id}.tsv").resolve())
     cfg.update(
         {
             "N": int(args.N),
@@ -188,8 +212,13 @@ def _build_config(args: argparse.Namespace, arm: Dict[str, Any]) -> Dict[str, An
             "level0_prescreen_tail_audit": int(args.level0_tail_audit),
             "line_outage_prob": float(args.line_outage_prob),
             "bus_outage_prob": float(args.bus_outage_prob),
+            "benchmark_arm_name": str(arm["arm_name"]),
+            "benchmark_seed": int(seed),
             "da_debug_print": False,
             "da_debug_max_logs": 0,
+            "da_trace_enabled": bool(args.da_trace_enabled),
+            "da_trace_output_path": trace_path,
+            "da_trace_run_id": trace_run_id,
         }
     )
     return cfg
@@ -296,6 +325,9 @@ def _success_row(*, arm_name, seed, n_samples, line_outage_prob, config, result,
         "l0_failure_label_fallback_reason": l0_failure_label_fallback_reason,
         "l0_prescreen_K_initial": controller_stats.get("l0_prescreen_K_initial"),
         "l0_prescreen_K_final": controller_stats.get("l0_prescreen_K_final"),
+        "da_trace_enabled": bool(controller_stats.get("da_trace_enabled", False)),
+        "da_trace_output_path": controller_stats.get("da_trace_output_path"),
+        "da_trace_rows": controller_stats.get("da_trace_rows"),
     }
 
 
@@ -340,6 +372,9 @@ def _error_row(*, arm_name, seed, n_samples, line_outage_prob, config, status, e
         "l0_failure_label_fallback_reason": "not_applicable",
         "l0_prescreen_K_initial": None,
         "l0_prescreen_K_final": None,
+        "da_trace_enabled": bool(config.get("da_trace_enabled", False)),
+        "da_trace_output_path": config.get("da_trace_output_path") or None,
+        "da_trace_rows": None,
     }
 
 
@@ -470,13 +505,14 @@ def main() -> None:
     print(f"ML Surrogate Benchmark: {args.case}")
     print(f"  N={args.N} seeds={args.seeds} line_outage_prob={args.line_outage_prob}")
     print(f"  level0_guard_mode={args.level0_guard_mode}")
+    print(f"  da_trace_enabled={args.da_trace_enabled}")
     print(f"  arms: {[a['arm_name'] for a in selected_arms]}")
     print(f"  output: {output_path}")
 
     rows: List[Dict[str, Any]] = []
     for arm in selected_arms:
         for seed in args.seeds:
-            cfg = _build_config(args, arm)
+            cfg = _build_config(args, arm, output_path=output_path, seed=int(seed))
             arm_name = arm["arm_name"]
             print(f"\n  [{arm_name}] seed={seed} ...", flush=True)
             t0 = time.time()

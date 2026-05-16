@@ -1,0 +1,535 @@
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 70)
+In mips (line 468)
+In nlps_master (line 231)
+In opt_model/solve (line 175)
+In nlpopf_solver (line 123)
+In opf_execute (line 134)
+In opf (line 232)
+In runopf (line 75)
+In mp_run_acopf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 32)
+
+Warning: Matrix is singular to working precision.
+> In dcpf (line 33)
+In runpf (line 142)
+In rundcpf (line 72)
+In mp_run_dcpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 34)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 70)
+In mips (line 468)
+In nlps_master (line 231)
+In opt_model/solve (line 175)
+In nlpopf_solver (line 123)
+In opf_execute (line 134)
+In opf (line 232)
+In runopf (line 75)
+In mp_run_acopf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 32)
+
+Warning: Matrix is singular to working precision.
+> In dcpf (line 33)
+In runpf (line 142)
+In rundcpf (line 72)
+In mp_run_dcpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 34)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 70)
+In mips (line 468)
+In nlps_master (line 231)
+In opt_model/solve (line 175)
+In nlpopf_solver (line 123)
+In opf_execute (line 134)
+In opf (line 232)
+In runopf (line 75)
+In mp_run_acopf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 32)
+
+Warning: Matrix is singular to working precision.
+> In dcpf (line 33)
+In runpf (line 142)
+In rundcpf (line 72)
+In mp_run_dcpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 34)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 70)
+In mips (line 468)
+In nlps_master (line 231)
+In opt_model/solve (line 175)
+In nlpopf_solver (line 123)
+In opf_execute (line 134)
+In opf (line 232)
+In runopf (line 75)
+In mp_run_acopf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 32)
+
+Warning: Matrix is singular to working precision.
+> In dcpf (line 33)
+In runpf (line 142)
+In rundcpf (line 72)
+In mp_run_dcpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 34)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 70)
+In mips (line 468)
+In nlps_master (line 231)
+In opt_model/solve (line 175)
+In nlpopf_solver (line 123)
+In opf_execute (line 134)
+In opf (line 232)
+In runopf (line 75)
+In mp_run_acopf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 32)
+
+Warning: Matrix is singular to working precision.
+> In dcpf (line 33)
+In runpf (line 142)
+In rundcpf (line 72)
+In mp_run_dcpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 34)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 79)
+In newtonpf (line 110)
+In runpf (line 276)
+In mp_run_acpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 30)
+
+Warning: Matrix is singular to working precision.
+> In mplinsolve (line 70)
+In mips (line 468)
+In nlps_master (line 231)
+In opt_model/solve (line 175)
+In nlpopf_solver (line 123)
+In opf_execute (line 134)
+In opf (line 232)
+In runopf (line 75)
+In mp_run_acopf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 32)
+
+Warning: Matrix is singular to working precision.
+> In dcpf (line 33)
+In runpf (line 142)
+In rundcpf (line 72)
+In mp_run_dcpf_minimal (line 30)
+In mp_eval_damaged_case_minimal (line 34)
+
+{"N": 200, "case": "case14", "csv_path": "ac_ext/experiments/out/diag_dcpf/proxy_diagnostics.csv", "finite_pair_count": 194, "pearson_s_any": 1.3129918688133189e-17, "proxy": "dcpf", "quantile_buckets": [{"bucket": 1, "count": 20, "proxy_max": -0.06000000000000005, "proxy_min": -0.06000000000000005, "truth_mean": -1.4778441568275013e-07}, {"bucket": 2, "count": 20, "proxy_max": -0.06000000000000005, "proxy_min": -0.06000000000000005, "truth_mean": -1.813216737645007e-07}, {"bucket": 3, "count": 20, "proxy_max": -0.06000000000000005, "proxy_min": -0.06000000000000005, "truth_mean": -2.200582047251487e-07}, {"bucket": 4, "count": 20, "proxy_max": -0.06000000000000005, "proxy_min": -0.06000000000000005, "truth_mean": -2.0356281543731924e-07}, {"bucket": 5, "count": 20, "proxy_max": -0.06000000000000005, "proxy_min": -0.06000000000000005, "truth_mean": -1.5367083160411356e-07}, {"bucket": 6, "count": 20, "proxy_max": -0.06000000000000005, "proxy_min": -0.06000000000000005, "truth_mean": -1.7007481113440192e-07}, {"bucket": 7, "count": 20, "proxy_max": -0.06000000000000005, "proxy_min": -0.06000000000000005, "truth_mean": -1.482916993866823e-07}, {"bucket": 8, "count": 20, "proxy_max": -0.06000000000000005, "proxy_min": -0.06000000000000005, "truth_mean": -2.1255642740358738e-07}, {"bucket": 9, "count": 20, "proxy_max": -0.06000000000000005, "proxy_min": -0.06000000000000005, "truth_mean": -1.8394117300424285e-07}, {"bucket": 10, "count": 20, "proxy_max": Infinity, "proxy_min": -0.06000000000000005, "truth_mean": -1.3303617956467966e-07}], "quantile_plot_path": "ac_ext/experiments/out/diag_dcpf/proxy_quantile_truth_mean.png", "scatter_path": "ac_ext/experiments/out/diag_dcpf/truth_vs_proxy_scatter.png", "seed": 1, "spearman_s_any": null, "top10pct": {"jaccard": 0.21212121212121213, "k": 20, "overlap": 7, "overlap_rate": 0.35}, "truth": "acopf"}
